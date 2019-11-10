@@ -1,11 +1,11 @@
 <template>
 	<div :class="containerClasses" :style="containerStyle" style="width:400px; height: 600px">
-		<tree-flat-list :listItems="treeData" />
+		<!-- <tree-flat-list :listItems="treeData" /> -->
 	</div>
 </template>
 
 <script>
-import TreeFlatList from "./TreeFlatList";
+// import TreeFlatList from "./TreeFlatList";
 
 export default {
 	name: "TheTree",
@@ -27,7 +27,7 @@ export default {
 		}
 	},
 	components: {
-		TreeFlatList
+		// TreeFlatList
 	},
 	data() {
 		return {
