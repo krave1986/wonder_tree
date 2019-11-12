@@ -1,11 +1,11 @@
 <template>
 	<div :class="containerClasses" :style="containerStyle" style="width:400px; height: 600px">
-		<!-- <tree-flat-list :listItems="treeData" /> -->
+		<tree-flat-list :listItems="treeData" />
 	</div>
 </template>
 
 <script>
-// import TreeFlatList from "./TreeFlatList";
+import TreeFlatList from "./TreeFlatList";
 
 export default {
 	name: "TheTree",
@@ -14,6 +14,22 @@ export default {
 		sizeContainment: {
 			type: Boolean,
 			default: true
+		},
+		migrationStep: {
+			type: [Number, String],
+			validator: function(value) {
+				if (typeof value === "string") {
+					return value === "all";
+				} else {
+					return Math.trunc(value) === value;
+				}
+			}
+		},
+		migrationInterval: {
+			type: Number,
+			validator: function(value) {
+				return Math.trunc(value) === value;
+			}
 		},
 		treeData: {},
 		watchToId: {},
@@ -27,7 +43,7 @@ export default {
 		}
 	},
 	components: {
-		// TreeFlatList
+		TreeFlatList
 	},
 	data() {
 		return {
@@ -50,9 +66,9 @@ export default {
 			watchToId: this.watchToId,
 			uniqueKey: this.uniqueKey,
 			childrenIdentifiers:
-				typeof this.childrenIdentifiers === "string"
-					? [this.childrenIdentifiers]
-					: this.childrenIdentifiers
+				typeof this.childrenIdentifiers === "string" ? [this.childrenIdentifiers] : this.childrenIdentifiers,
+			migrationStep: this.migrationStep,
+			migrationInterval: this.migrationInterval
 		};
 	}
 };
