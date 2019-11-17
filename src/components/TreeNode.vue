@@ -53,6 +53,148 @@ function* migrator(step, base, cache, uniqueKey) {
 	}
 }
 
+function getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
+	// 比较方法，纯粹比较相同还是不同
+	function compare(a, b) {
+		// 如果传入了 uniqueKey 的话，则比较 uniqueKey 属性的值
+		if (uniqueKey) {
+			return a[uniqueKey] === b[uniqueKey];
+		} else return a === b;
+	}
+	// 检查 循环是否已经结束
+	function checkWhetherLoopOver() {
+		// 如果 cachePointer 等于 cache 数组的长度，则表示 cacheDrained
+		if (cachePointer === cache.length) {
+			cacheDrained = true;
+		}
+		// 如果 listPointer 等于 list 数组的长度，则表示 listDrained
+		if (listPointer === list.length) {
+			listDrained = true;
+		}
+		return cacheDrained || listDrained;
+	}
+	// 平行迁移
+	function parallelMigrate() {
+		// 两个数组中的元素做平行赋值
+		cache[cachePointer] = list[listPointer];
+		snapshot.push({ parallel: true, result: cache.slice(0) });
+		// 双边指针 +1
+		cachePointer += 1;
+		listPointer += 1;
+		// 检查循环是否结束
+		checkWhetherLoopOver();
+	}
+	// 从数组中，找到匹配项的 索引
+	function findIndexOfSpecificItemFromArray(fromIndex, array, item) {
+		// 用 for 循环，从 fromIndex 进行迭代，避免逻辑错误 和 不必要的遍历
+		for (let i = fromIndex; i < array.length; i++) {
+			if (compare(item, array[i])) {
+				return i;
+			}
+		}
+		return null;
+	}
+	// 在 cache 中插入新元素
+	function insertNewElementIntoCache(index, item) {
+		// 插入新增元素
+		cache.splice(index, 0, item);
+		// 加入快照
+		snapshot.push({ parallel: false, result: cache.slice(0) });
+		// 双边指针 +1
+		cachePointer += 1;
+		listPointer += 1;
+		// 检查循环是否结束
+		checkWhetherLoopOver();
+	}
+	// 交换 cache 中，元素的位置
+	function swapElementInCache(toBeSwapped, from, item) {
+		// 检查被替换的元素是否存在于 list 的后续部分中
+		const index = findIndexOfSpecificItemFromArray(listPointer + 1, list, cache[toBeSwapped]);
+		// 如果 index !== null ，说明被替换的元素，仍旧在后续数组中
+		// cache 中 toBeSwapped 元素，根据 index 的结果看，是换到 from 的位置，还是直接被splice掉
+		cache.splice(from, 1, ...(index === null ? [] : [cache[toBeSwapped]]));
+		// 将 list 中的新数据 swap 进 cache 中
+		cache.splice(toBeSwapped, 1, item);
+		// 加入快照
+		snapshot.push({ parallel: false, result: cache.slice(0) });
+		// 双边指针 +1
+		cachePointer += 1;
+		listPointer += 1;
+		// 检查循环是否结束
+		checkWhetherLoopOver();
+	}
+	// 移除 cache 中剩余的元素，每次做一个镜像
+	function removeTheRestInCache() {
+		// 从 cachePointer 开始，到 cache.length - 1为止，对剩余的 cache 元素进行迭代
+		const counts = cache.length - cachePointer;
+		for (let i = 0; i < counts; i++) {
+			// 移除1条
+			cache.splice(cachePointer, 1);
+			// 加入快照
+			snapshot.push({ parallel: false, result: cache.slice(0) });
+			// 双边指针 +1
+			cachePointer += 1;
+			listPointer += 1;
+		}
+		// 检查循环是否结束
+		checkWhetherLoopOver();
+	}
+	// 生成 target 和 reference 的浅拷贝
+	// taget => cache
+	// reference => list
+	let cache = target.slice(0);
+	let list = reference.slice(0);
+	// snapshot 数组用来存放修改快照
+	const snapshot = [];
+	// cacheDrained 表示 cache 数组耗尽；listDrained 表示 list 数组耗尽
+	let cacheDrained = false;
+	let listDrained = false;
+
+	// 建立 cache 的指针 和 list 的指针
+	let cachePointer = 0;
+	let listPointer = 0;
+
+	// loopOver 用来表示迭代是否已经结束
+	let loopOver = checkWhetherLoopOver();
+
+	while (loopOver === false) {
+		const itemInCacheForThisLoop = cache[cachePointer];
+		const itemInListForThisLoop = list[listPointer];
+		// 去 list 中，当前 listPointer 索引位置，进行比较
+		if (compare(itemInCacheForThisLoop, itemInListForThisLoop)) {
+			// 表明这是一个 parallel 操作，之后拿到快照以后，可以选择性地进行批量数据迁移
+			parallelMigrate();
+		} else {
+			// 非平行操作开始
+			// 反过来，拿 itemInListForThisLoop 在 cache 中，cachePointer 之后，查询是否有匹配项
+			const indexFoundInCache = findIndexOfSpecificItemFromArray(cachePointer + 1, cache, itemInListForThisLoop);
+			// 如果没有找到，说明 list 中的这个元素是新加的元素，
+			// 所做的操作是，在 CachePointer 的位置，对此元素做 splice ，并且对 pointer 分别 +1
+			if (indexFoundInCache === null) {
+				insertNewElementIntoCache(cachePointer, itemInListForThisLoop);
+			} else {
+				// 此时，itemInList 在 cache 中的其它位置 —— indexFoundInCache 处，找到了元素，需要将元素进行换位
+				swapElementInCache(cachePointer, indexFoundInCache, itemInListForThisLoop);
+			}
+		}
+	}
+	// 如果 list 干涸，cache 未干涸，则将 cache 中剩余的内容进行擦除
+	if (listDrained === true && !cacheDrained) {
+		removeTheRestInCache();
+	}
+	// 如果 cache 干涸，list 未干涸，则将 list 中剩余的内容全部加入到 cache 中去
+	if (cacheDrained === true && !listDrained) {
+		list.slice(listPointer).reduce((accumulator, currentElement) => {
+			accumulator.push(currentElement);
+			snapshot.push({ parallel: false, result: accumulator.slice(0) });
+			listPointer++;
+			return accumulator;
+		}, []);
+		checkWhetherLoopOver();
+	}
+	return snapshot;
+}
+
 export default {
 	props: {
 		treeItem: {}
@@ -117,19 +259,23 @@ export default {
 			// 3、生成 generator 对象，在每次间隔到点时，调用 generator 。
 			// over 表示迭代是否已经结束
 			let over = false;
-			const gen = migrator(step, this.childrenInThisItem, this.childrenCache, this.uniqueKey);
-			// 这里，我想根据 migrator 的迭代结果，进行一定的定制化操作
-			// 比如，迭代到某个索引长度，就不再进行数据迭代，下方显示 ... 等等
-			function timeController(gen, interval, nextPointer, customizedMigrationHandler) {
-				// 触发 generator ，然后根据 generator 的返回值，去调用自定义 handler 。
-				const genResult = gen.next(nextPointer);
-				// 拿到下次 generator 触发时的 pointer 位置，进行一个自定义的逻辑操作。
-				if (genResult.done === false) {
-					const { gen, interval, nextPointer, customizedMigrationHandler } = customizedMigrationHandler();
-				}
+			// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
+			const snapshot = getSnapshotWhenSyncingTwoArrays(this.childrenCache, this.childrenInThisItem, this.uniqueKey);
+			console.log(snapshot);
+			// debugger;
+			// const gen = migrator(step, this.childrenInThisItem, this.childrenCache, this.uniqueKey);
+			// // 这里，我想根据 migrator 的迭代结果，进行一定的定制化操作
+			// // 比如，迭代到某个索引长度，就不再进行数据迭代，下方显示 ... 等等
+			// function timeController(gen, interval, nextPointer, customizedMigrationHandler) {
+			// 	// 触发 generator ，然后根据 generator 的返回值，去调用自定义 handler 。
+			// 	const genResult = gen.next(nextPointer);
+			// 	// 拿到下次 generator 触发时的 pointer 位置，进行一个自定义的逻辑操作。
+			// 	if (genResult.done === false) {
+			// 		const { gen, interval, nextPointer, customizedMigrationHandler } = customizedMigrationHandler();
+			// 	}
 
-				debugger;
-			}
+			// 	debugger;
+			// }
 		}
 	},
 	mounted() {
