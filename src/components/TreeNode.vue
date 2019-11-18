@@ -280,11 +280,19 @@ export default {
 			);
 			// 声明 requestIdleCallback 需要调用的方法
 			function pastime(gen, timeout) {
-				//
+				// 我希望：尽量利用 requestIdleCallback 来运行 gen ，
+				// 并在 timeout 达到之前，尽可能完成整个 gen 的运行。
+				// 声明 idleHandler 让 requestIdleCallback 进行调用
+				function idleHandler(deadline) {
+					// 用 yieldResult 存放每次 gen.next() 的结果
+					let yieldResult;
+					// 只要 gen 没有 done，
+				}
 			}
 			// console.log(snapshot);
 			// debugger;
-			// const gen = migrator(step, this.childrenInThisItem, this.childrenCache, this.uniqueKey);
+			const gen = migrator(step, this.childrenInThisItem, this.childrenCache, this.uniqueKey);
+			pastime(gen, 500);
 			// // 这里，我想根据 migrator 的迭代结果，进行一定的定制化操作
 			// // 比如，迭代到某个索引长度，就不再进行数据迭代，下方显示 ... 等等
 			// function timeController(gen, interval, nextPointer, customizedMigrationHandler) {
