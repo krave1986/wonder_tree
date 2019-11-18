@@ -39,7 +39,7 @@ export default {
 		};
 	},
 	mounted() {
-		axios("/baohanwangguan.json").then(({ data }) => {
+		axios("/baohanwangguan1.json").then(({ data }) => {
 			this.treeData = data;
 		});
 	},
