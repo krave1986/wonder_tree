@@ -260,8 +260,26 @@ export default {
 			// over 表示迭代是否已经结束
 			let over = false;
 			// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
-			const snapshot = getSnapshotWhenSyncingTwoArrays(this.childrenCache, this.childrenInThisItem, this.uniqueKey);
-			console.log(snapshot);
+			const snapshotGen = getSnapshotWhenSyncingTwoArrays(this.childrenCache, this.childrenInThisItem, this.uniqueKey);
+			// 声明 requestIdleCallback 需要调用的方法
+			var conconGen = (function*() {
+				var concon = 0;
+				while (true) {
+					yield concon;
+				}
+			})();
+			// debugger;
+			function pastime(deadline) {
+				var count = 0;
+				console.log("Run!!!");
+				// 根据每次 deadline 的情况，判断是不是要继续 pastime 的操作
+				while (deadline.timeRemaining() > 0) {
+					console.log(deadline.timeRemaining());
+					console.log(count++);
+				}
+			}
+			requestIdleCallback(pastime);
+			// console.log(snapshot);
 			// debugger;
 			// const gen = migrator(step, this.childrenInThisItem, this.childrenCache, this.uniqueKey);
 			// // 这里，我想根据 migrator 的迭代结果，进行一定的定制化操作
