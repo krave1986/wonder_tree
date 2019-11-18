@@ -40,7 +40,12 @@ function* migrator(step, base, cache, uniqueKey) {
 			let noDuplicationsInRest;
 			// 向后验重。此时 migrationUnitEndBefore 已经指向了验重的起始位置
 			// 对 迁移单元 进行迭代，使用 reduce 方法，在迭代迁移单元的过程当中，就把之后要替换掉的数组内容做好。
-			noDuplicationsInRest = eliminateDuplicationsInRestOfCache(migrationUnit, migrationUnitEndBefore, cache, uniqueKey);
+			noDuplicationsInRest = eliminateDuplicationsInRestOfCache(
+				migrationUnit,
+				migrationUnitEndBefore,
+				cache,
+				uniqueKey
+			);
 			// 把 迁移单元 和 noDuplicationsInRest 进行合并，从 migrationUnitEndBefore 这个索引开始，全部 splice 掉
 			cache.splice(pointer, Infinity, ...migrationUnit.concat(noDuplicationsInRest));
 			//
@@ -167,7 +172,11 @@ function getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 		} else {
 			// 非平行操作开始
 			// 反过来，拿 itemInListForThisLoop 在 cache 中，cachePointer 之后，查询是否有匹配项
-			const indexFoundInCache = findIndexOfSpecificItemFromArray(cachePointer + 1, cache, itemInListForThisLoop);
+			const indexFoundInCache = findIndexOfSpecificItemFromArray(
+				cachePointer + 1,
+				cache,
+				itemInListForThisLoop
+			);
 			// 如果没有找到，说明 list 中的这个元素是新加的元素，
 			// 所做的操作是，在 CachePointer 的位置，对此元素做 splice ，并且对 pointer 分别 +1
 			if (indexFoundInCache === null) {
@@ -242,11 +251,15 @@ export default {
 			return this.downstreamSwitch ? this.childrenCache : [];
 		},
 		migrationStepInAction: function() {
-			return this.migrationStep === "all" ? this.childrenInThisItem.length : this.migrationStep;
+			return this.migrationStep === "all"
+				? this.childrenInThisItem.length
+				: this.migrationStep;
 		},
 		childrenInThisItem: function() {
 			const vm = this;
-			return vm.childrenKeys.map(key => vm.treeItem && vm.treeItem[key]).find(children => Array.isArray(children));
+			return vm.childrenKeys
+				.map(key => vm.treeItem && vm.treeItem[key])
+				.find(children => Array.isArray(children));
 		}
 	},
 	methods: {
@@ -260,25 +273,15 @@ export default {
 			// over 表示迭代是否已经结束
 			let over = false;
 			// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
-			const snapshotGen = getSnapshotWhenSyncingTwoArrays(this.childrenCache, this.childrenInThisItem, this.uniqueKey);
+			const snapshotGen = getSnapshotWhenSyncingTwoArrays(
+				this.childrenCache,
+				this.childrenInThisItem,
+				this.uniqueKey
+			);
 			// 声明 requestIdleCallback 需要调用的方法
-			var conconGen = (function*() {
-				var concon = 0;
-				while (true) {
-					yield concon;
-				}
-			})();
-			// debugger;
-			function pastime(deadline) {
-				var count = 0;
-				console.log("Run!!!");
-				// 根据每次 deadline 的情况，判断是不是要继续 pastime 的操作
-				while (deadline.timeRemaining() > 0) {
-					console.log(deadline.timeRemaining());
-					console.log(count++);
-				}
+			function pastime(gen, timeout) {
+				//
 			}
-			requestIdleCallback(pastime);
 			// console.log(snapshot);
 			// debugger;
 			// const gen = migrator(step, this.childrenInThisItem, this.childrenCache, this.uniqueKey);
