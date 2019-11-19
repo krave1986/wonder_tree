@@ -58,7 +58,7 @@ function* migrator(step, base, cache, uniqueKey) {
 	}
 }
 
-function getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
+function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 	// 比较方法，纯粹比较相同还是不同
 	function compare(a, b) {
 		// 如果传入了 uniqueKey 的话，则比较 uniqueKey 属性的值
@@ -129,7 +129,7 @@ function getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 		checkWhetherLoopOver();
 	}
 	// 移除 cache 中剩余的元素，每次做一个镜像
-	function removeTheRestInCache() {
+	function* removeTheRestInCache() {
 		// 从 cachePointer 开始，到 cache.length - 1为止，对剩余的 cache 元素进行迭代
 		const counts = cache.length - cachePointer;
 		for (let i = 0; i < counts; i++) {
@@ -140,6 +140,8 @@ function getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 			// 双边指针 +1
 			cachePointer += 1;
 			listPointer += 1;
+			debugger;
+			yield { cachePointer, cache, listPointer, list };
 		}
 		// 检查循环是否结束
 		checkWhetherLoopOver();
@@ -186,20 +188,26 @@ function getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 				swapElementInCache(cachePointer, indexFoundInCache, itemInListForThisLoop);
 			}
 		}
+		yield { cachePointer, itemInCacheForThisLoop, listPointer, itemInListForThisLoop };
 	}
 	// 如果 list 干涸，cache 未干涸，则将 cache 中剩余的内容进行擦除
 	if (listDrained === true && !cacheDrained) {
-		removeTheRestInCache();
+		yield* removeTheRestInCache();
 	}
 	// 如果 cache 干涸，list 未干涸，则将 list 中剩余的内容全部加入到 cache 中去
-	if (cacheDrained === true && !listDrained) {
-		list.slice(listPointer).reduce((accumulator, currentElement) => {
-			accumulator.push(currentElement);
-			snapshot.push({ parallel: false, result: accumulator.slice(0) });
-			listPointer++;
-			return accumulator;
-		}, []);
+	while (cacheDrained === true && !listDrained) {
+		// list.slice(listPointer).reduce((accumulator, currentElement) => {
+		// 	accumulator.push(currentElement);
+		// 	snapshot.push({ parallel: false, result: accumulator.slice(0) });
+		// 	listPointer++;
+		// 	return accumulator;
+		// }, []);
+		// 因为数组函数的限制，没法在 reduce 的 handler 中，使用 yield，所以，做一个改写
+		debugger;
+		cache.push(list[listPointer++]);
+		snapshot.push({ parallel: false, result: cache.slice(0) });
 		checkWhetherLoopOver();
+		yield { cachePointer, cache, listPointer, list };
 	}
 	return snapshot;
 }
@@ -286,13 +294,22 @@ export default {
 				function idleHandler(deadline) {
 					// 用 yieldResult 存放每次 gen.next() 的结果
 					let yieldResult;
-					// 只要 gen 没有 done，
+					debugger;
+					// 只要 gen 没有 done，timeRemaining 还有时间，didTimeout 没到，就持续执行循环语句
+					while (
+						(yieldResult = gen.next()).done === false &&
+						(deadline.timeRemaining() > 1 || deadline.didTimeout)
+					) {
+						debugger;
+					}
+					debugger;
 				}
+				requestIdleCallback(idleHandler, { timeout: 1000 });
 			}
+			pastime(snapshotGen, 10);
 			// console.log(snapshot);
 			// debugger;
-			const gen = migrator(step, this.childrenInThisItem, this.childrenCache, this.uniqueKey);
-			pastime(gen, 500);
+			// const gen = migrator(step, this.childrenInThisItem, this.childrenCache, this.uniqueKey);
 			// // 这里，我想根据 migrator 的迭代结果，进行一定的定制化操作
 			// // 比如，迭代到某个索引长度，就不再进行数据迭代，下方显示 ... 等等
 			// function timeController(gen, interval, nextPointer, customizedMigrationHandler) {
