@@ -140,7 +140,6 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 			// 双边指针 +1
 			cachePointer += 1;
 			listPointer += 1;
-			debugger;
 			yield { cachePointer, cache, listPointer, list };
 		}
 		// 检查循环是否结束
@@ -203,8 +202,8 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 		// 	return accumulator;
 		// }, []);
 		// 因为数组函数的限制，没法在 reduce 的 handler 中，使用 yield，所以，做一个改写
-		debugger;
 		cache.push(list[listPointer++]);
+		cachePointer++;
 		snapshot.push({ parallel: false, result: cache.slice(0) });
 		checkWhetherLoopOver();
 		yield { cachePointer, cache, listPointer, list };
@@ -291,24 +290,37 @@ export default {
 				// 我希望：尽量利用 requestIdleCallback 来运行 gen ，
 				// 并在 timeout 达到之前，尽可能完成整个 gen 的运行。
 				// 声明 idleHandler 让 requestIdleCallback 进行调用
-				function idleHandler(deadline) {
-					// 用 yieldResult 存放每次 gen.next() 的结果
-					let yieldResult;
-					debugger;
-					// 只要 gen 没有 done，timeRemaining 还有时间，didTimeout 没到，就持续执行循环语句
-					while (
-						(yieldResult = gen.next()).done === false &&
-						(deadline.timeRemaining() > 1 || deadline.didTimeout)
-					) {
-						debugger;
+				// 用 yieldResult 存放每次 gen.next() 的结果，包括 gen 的返回值：最后一次next()的结果
+				let yieldResult;
+				return new Promise(function(resolve) {
+					function idleHandler(deadline) {
+						const genStart = Date.now();
+						// 只要 gen 没有 done，timeRemaining 还有时间，didTimeout 没到，就持续执行循环语句
+						while (
+							(yieldResult = gen.next()).done === false &&
+							(deadline.timeRemaining() > 5 || deadline.didTimeout)
+						) {
+							console.log(deadline.timeRemaining());
+							// 这个while循环的函数体其实没有意义，因为每次迭代的大部分内容就是去调用gen的next方法
+							// 之后可以传入条件，来判断是否要 break 掉循环，或是进行其它操作。
+						}
+						const genEnd = Date.now();
+						// 到这一步，已经出了while循环。如果 yieldResult.done === false，
+						// 表示 gen 还没运行完，给的 timeout 也还有时间，只是当前 idle tick 没时间了。
+						// 需要再排一个 idleCallback 才能让 gen 执行完.
+						if (yieldResult.done === false) {
+							timeout = timeout - genEnd + genStart;
+							requestIdleCallback(idleHandler, { timeout });
+						} else resolve(yieldResult.value);
 					}
-					debugger;
-				}
-				requestIdleCallback(idleHandler, { timeout: 1000 });
+					requestIdleCallback(idleHandler, { timeout });
+				});
 			}
-			pastime(snapshotGen, 10);
+			pastime(snapshotGen, 150).then(result => {
+				console.log(result);
+				// debugger;
+			});
 			// console.log(snapshot);
-			// debugger;
 			// const gen = migrator(step, this.childrenInThisItem, this.childrenCache, this.uniqueKey);
 			// // 这里，我想根据 migrator 的迭代结果，进行一定的定制化操作
 			// // 比如，迭代到某个索引长度，就不再进行数据迭代，下方显示 ... 等等
@@ -320,13 +332,11 @@ export default {
 			// 		const { gen, interval, nextPointer, customizedMigrationHandler } = customizedMigrationHandler();
 			// 	}
 
-			// 	debugger;
 			// }
 		}
 	},
 	mounted() {
 		this.migrateData();
-		// debugger;
 	}
 };
 </script>
