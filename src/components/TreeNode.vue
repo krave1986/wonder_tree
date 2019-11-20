@@ -219,7 +219,8 @@ export default {
 		return {
 			downstreamSwitch: false,
 			childrenCache: [],
-			customDataAbc: { ...this.customData.generator() }
+			customDataAbc: { ...this.customData.generator() },
+			spurt: false
 		};
 	},
 	inject: {
@@ -298,9 +299,10 @@ export default {
 						// 只要 gen 没有 done，timeRemaining 还有时间，didTimeout 没到，就持续执行循环语句
 						while (
 							(yieldResult = gen.next()).done === false &&
-							(deadline.timeRemaining() > 5 || deadline.didTimeout)
+							(deadline.timeRemaining() > 3 || deadline.didTimeout)
 						) {
 							console.log(deadline.timeRemaining());
+							console.log(deadline.didTimeout);
 							// 这个while循环的函数体其实没有意义，因为每次迭代的大部分内容就是去调用gen的next方法
 							// 之后可以传入条件，来判断是否要 break 掉循环，或是进行其它操作。
 						}
@@ -309,14 +311,15 @@ export default {
 						// 表示 gen 还没运行完，给的 timeout 也还有时间，只是当前 idle tick 没时间了。
 						// 需要再排一个 idleCallback 才能让 gen 执行完.
 						if (yieldResult.done === false) {
-							timeout = timeout - genEnd + genStart;
+							timeout = Math.max(timeout - genEnd + genStart, 1);
+							console.log("OUT!!! ++++++++++", timeout)
 							requestIdleCallback(idleHandler, { timeout });
 						} else resolve(yieldResult.value);
 					}
 					requestIdleCallback(idleHandler, { timeout });
 				});
 			}
-			pastime(snapshotGen, 150).then(result => {
+			pastime(snapshotGen, 1000).then(result => {
 				console.log(result);
 				// debugger;
 			});
