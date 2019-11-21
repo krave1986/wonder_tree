@@ -17,6 +17,17 @@ function eliminateDuplicationsInRestOfCache(migrationUnit, index, cache, key) {
 	}, restSegmentInCache);
 }
 
+function getPropertyFromString(obj, keyToken) {
+	const keyArr = keyToken.split(".");
+	return keyArr.reduce((subLevelProperty, key) => {
+		try {
+			return subLevelProperty[key];
+		} catch (error) {
+			return undefined;
+		}
+	}, obj);
+}
+
 function* migrator(step, base, cache, uniqueKey) {
 	console.log(cache);
 	// migrationUnitEndBefore 用来存放本次迭代单元中，末位元素的索引之后的索引
@@ -220,8 +231,16 @@ export default {
 			downstreamSwitch: false,
 			childrenCache: [],
 			customDataAbc: { ...this.customData.generator() },
-			spurt: false
+			urgent: false,
+			snapshotPromise: undefined,
+			snapshotResolve: undefined
 		};
+	},
+	created() {
+		const vm = this;
+		vm.snapshotPromise = new Promise(function(resolve, reject) {
+			vm.snapshotResolve = resolve;
+		});
 	},
 	inject: {
 		childrenKeys: "childrenIdentifiers",
@@ -258,11 +277,6 @@ export default {
 		listItems: function() {
 			return this.downstreamSwitch ? this.childrenCache : [];
 		},
-		migrationStepInAction: function() {
-			return this.migrationStep === "all"
-				? this.childrenInThisItem.length
-				: this.migrationStep;
-		},
 		childrenInThisItem: function() {
 			const vm = this;
 			return vm.childrenKeys
@@ -271,15 +285,8 @@ export default {
 		}
 	},
 	methods: {
-		migrateData: function() {
+		getSnapshotReady: function() {
 			const vm = this;
-			// 1、迁移步进为： this.migrationStepInAction
-			// 2、迁移间隔为： this.migrationInterval
-			const step = this.migrationStepInAction;
-			const interval = this.migrationInterval;
-			// 3、生成 generator 对象，在每次间隔到点时，调用 generator 。
-			// over 表示迭代是否已经结束
-			let over = false;
 			// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
 			const snapshotGen = getSnapshotWhenSyncingTwoArrays(
 				this.childrenCache,
@@ -287,7 +294,7 @@ export default {
 				this.uniqueKey
 			);
 			// 声明 requestIdleCallback 需要调用的方法
-			function pastime(gen, timeout) {
+			function pastime(gen, timeout, backpacker, bag) {
 				// 我希望：尽量利用 requestIdleCallback 来运行 gen ，
 				// 并在 timeout 达到之前，尽可能完成整个 gen 的运行。
 				// 声明 idleHandler 让 requestIdleCallback 进行调用
@@ -312,34 +319,48 @@ export default {
 						// 需要再排一个 idleCallback 才能让 gen 执行完.
 						if (yieldResult.done === false) {
 							timeout = Math.max(timeout - genEnd + genStart, 1);
-							console.log("OUT!!! ++++++++++", timeout)
-							requestIdleCallback(idleHandler, { timeout });
+							console.log("OUT!!!! +++++++++++++++++", timeout);
+							// 判断是不是 urgent ，urgent 的话，
+							getPropertyFromString(backpacker, bag) === true
+								? requestIdleCallback(idleHandler, { timeout: 1 })
+								: requestIdleCallback(idleHandler, { timeout });
 						} else resolve(yieldResult.value);
 					}
-					requestIdleCallback(idleHandler, { timeout });
+					getPropertyFromString(backpacker, bag) === true
+						? requestIdleCallback(idleHandler, { timeout: 1 })
+						: requestIdleCallback(idleHandler, { timeout });
 				});
 			}
-			pastime(snapshotGen, 1000).then(result => {
-				console.log(result);
-				// debugger;
+			pastime(snapshotGen, 2000, vm, "urgent").then(result => {
+				vm.snapshotResolve(result);
 			});
-			// console.log(snapshot);
-			// const gen = migrator(step, this.childrenInThisItem, this.childrenCache, this.uniqueKey);
-			// // 这里，我想根据 migrator 的迭代结果，进行一定的定制化操作
-			// // 比如，迭代到某个索引长度，就不再进行数据迭代，下方显示 ... 等等
-			// function timeController(gen, interval, nextPointer, customizedMigrationHandler) {
-			// 	// 触发 generator ，然后根据 generator 的返回值，去调用自定义 handler 。
-			// 	const genResult = gen.next(nextPointer);
-			// 	// 拿到下次 generator 触发时的 pointer 位置，进行一个自定义的逻辑操作。
-			// 	if (genResult.done === false) {
-			// 		const { gen, interval, nextPointer, customizedMigrationHandler } = customizedMigrationHandler();
-			// 	}
-
-			// }
+		},
+		migrateData: function() {
+			const vm = this;
+			// 1、迁移步进为： this.migrationStep
+			// 2、迁移间隔为： this.migrationInterval
+			const step = this.migrationStep;
+			const interval = this.migrationInterval;
+			vm.snapshotPromise.then(snapshots => {
+				// 生成 generator 在每次间隔到点时，调用 generator 。
+				const migrationGen = migrator();
+				debugger;
+			});
+		}
+	},
+	watch: {
+		childrenInThisItem: {
+			handler: function() {
+				this.getSnapshotReady();
+			},
+			immediate: true
 		}
 	},
 	mounted() {
-		this.migrateData();
+		const vm = this;
+		setTimeout(() => {
+			vm.migrateData();
+		});
 	}
 };
 </script>
