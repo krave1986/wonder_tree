@@ -51,12 +51,7 @@ function* migrator(step, base, cache, uniqueKey) {
 			let noDuplicationsInRest;
 			// 向后验重。此时 migrationUnitEndBefore 已经指向了验重的起始位置
 			// 对 迁移单元 进行迭代，使用 reduce 方法，在迭代迁移单元的过程当中，就把之后要替换掉的数组内容做好。
-			noDuplicationsInRest = eliminateDuplicationsInRestOfCache(
-				migrationUnit,
-				migrationUnitEndBefore,
-				cache,
-				uniqueKey
-			);
+			noDuplicationsInRest = eliminateDuplicationsInRestOfCache(migrationUnit, migrationUnitEndBefore, cache, uniqueKey);
 			// 把 迁移单元 和 noDuplicationsInRest 进行合并，从 migrationUnitEndBefore 这个索引开始，全部 splice 掉
 			cache.splice(pointer, Infinity, ...migrationUnit.concat(noDuplicationsInRest));
 			//
@@ -184,11 +179,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 		} else {
 			// 非平行操作开始
 			// 反过来，拿 itemInListForThisLoop 在 cache 中，cachePointer 之后，查询是否有匹配项
-			const indexFoundInCache = findIndexOfSpecificItemFromArray(
-				cachePointer + 1,
-				cache,
-				itemInListForThisLoop
-			);
+			const indexFoundInCache = findIndexOfSpecificItemFromArray(cachePointer + 1, cache, itemInListForThisLoop);
 			// 如果没有找到，说明 list 中的这个元素是新加的元素，
 			// 所做的操作是，在 CachePointer 的位置，对此元素做 splice ，并且对 pointer 分别 +1
 			if (indexFoundInCache === null) {
@@ -198,7 +189,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 				swapElementInCache(cachePointer, indexFoundInCache, itemInListForThisLoop);
 			}
 		}
-		yield { cachePointer, itemInCacheForThisLoop, listPointer, itemInListForThisLoop };
+		yield { cachePointer, cache, listPointer, list };
 	}
 	// 如果 list 干涸，cache 未干涸，则将 cache 中剩余的内容进行擦除
 	if (listDrained === true && !cacheDrained) {
@@ -279,20 +270,14 @@ export default {
 		},
 		childrenInThisItem: function() {
 			const vm = this;
-			return vm.childrenKeys
-				.map(key => vm.treeItem && vm.treeItem[key])
-				.find(children => Array.isArray(children));
+			return vm.childrenKeys.map(key => vm.treeItem && vm.treeItem[key]).find(children => Array.isArray(children));
 		}
 	},
 	methods: {
 		getSnapshotReady: function() {
 			const vm = this;
 			// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
-			const snapshotGen = getSnapshotWhenSyncingTwoArrays(
-				this.childrenCache,
-				this.childrenInThisItem,
-				this.uniqueKey
-			);
+			const snapshotGen = getSnapshotWhenSyncingTwoArrays(this.childrenCache, this.childrenInThisItem, this.uniqueKey);
 			// 声明 requestIdleCallback 需要调用的方法
 			function pastime(gen, timeout, backpacker, bag) {
 				// 我希望：尽量利用 requestIdleCallback 来运行 gen ，
@@ -344,7 +329,10 @@ export default {
 			vm.snapshotPromise.then(snapshots => {
 				// 生成 generator 在每次间隔到点时，调用 generator 。
 				const migrationGen = migrator();
-				debugger;
+				window.requestAnimationFrame(() => {
+					console.log("LKKJ");
+					debugger;
+				});
 			});
 		}
 	},
