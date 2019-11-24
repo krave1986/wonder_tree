@@ -224,15 +224,11 @@ export default {
 			childrenCache: [],
 			customDataAbc: { ...this.customData.generator() },
 			urgent: false,
-			snapshotPromise: undefined,
-			snapshotResolve: undefined
+			snapshots: []
 		};
 	},
 	created() {
 		const vm = this;
-		vm.snapshotPromise = new Promise(function(resolve, reject) {
-			vm.snapshotResolve = resolve;
-		});
 	},
 	inject: {
 		childrenKeys: "childrenIdentifiers",
@@ -332,25 +328,20 @@ export default {
 			}
 			pastime(snapshotGen, 2000, vm, "urgent")
 				.then(result => {
-					vm.snapshotResolve(result);
+					vm.snapshots = result;
 				})
 				.catch(rejectReasons => {
 					console.log(rejectReasons);
 				});
 		},
-		migrateData: function() {
+		manuallyWatchSnapshots: function() {
 			const vm = this;
 			// 1、迁移步进为： this.migrationStep
 			// 2、迁移间隔为： this.migrationInterval
 			const step = this.migrationStep;
 			const interval = this.migrationInterval;
-			vm.snapshotPromise.then(snapshots => {
-				// 生成 generator 在每次间隔到点时，调用 generator 。
-				const migrationGen = migrator();
-				window.requestAnimationFrame(() => {
-					console.log("LKKJ");
-				});
-			}).catch;
+			// 不使用 promise，而是手动watch的方式，保证各种情况下，都可以在
+			// 该方法调用后，根据最新的 snapshots ，去做数据迁移。
 		}
 	},
 	watch: {
@@ -364,7 +355,7 @@ export default {
 	mounted() {
 		const vm = this;
 		setTimeout(() => {
-			vm.migrateData();
+			vm.manuallyWatchSnapshots();
 		});
 	}
 };
