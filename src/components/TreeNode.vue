@@ -6,6 +6,7 @@
 
 <script>
 const componentName = "TreeNode";
+let snapshotTestament = 1;
 
 function eliminateDuplicationsInRestOfCache(migrationUnit, index, cache, key) {
 	// cache 剩余的，需要做去重校验的部分
@@ -64,7 +65,7 @@ function* migrator(step, base, cache, uniqueKey) {
 	}
 }
 
-function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
+function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey, testament) {
 	// 比较方法，纯粹比较相同还是不同
 	function compare(a, b) {
 		// 如果传入了 uniqueKey 的话，则比较 uniqueKey 属性的值
@@ -146,7 +147,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 			// 双边指针 +1
 			cachePointer += 1;
 			listPointer += 1;
-			yield { cachePointer, cache, listPointer, list };
+			yield { testament, payload: { cachePointer, cache, listPointer, list } };
 		}
 		// 检查循环是否结束
 		checkWhetherLoopOver();
@@ -189,7 +190,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 				swapElementInCache(cachePointer, indexFoundInCache, itemInListForThisLoop);
 			}
 		}
-		yield { cachePointer, cache, listPointer, list };
+		yield { testament, payload: { cachePointer, cache, listPointer, list } };
 	}
 	// 如果 list 干涸，cache 未干涸，则将 cache 中剩余的内容进行擦除
 	if (listDrained === true && !cacheDrained) {
@@ -208,7 +209,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 		cachePointer++;
 		snapshot.push({ parallel: false, result: cache.slice(0) });
 		checkWhetherLoopOver();
-		yield { cachePointer, cache, listPointer, list };
+		yield { testament, payload: { cachePointer, cache, listPointer, list } };
 	}
 	return snapshot;
 }
@@ -274,10 +275,17 @@ export default {
 		}
 	},
 	methods: {
-		getSnapshotReady: function() {
+		getSnapshotReady: function(nv) {
 			const vm = this;
+			snapshotTestament = nv.slice(0);
 			// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
-			const snapshotGen = getSnapshotWhenSyncingTwoArrays(this.childrenCache, this.childrenInThisItem, this.uniqueKey);
+			const snapshotGen = getSnapshotWhenSyncingTwoArrays(
+				this.childrenCache,
+				this.childrenInThisItem,
+				this.uniqueKey,
+				// this.childrenInThisItem
+				snapshotTestament
+			);
 			// 声明 requestIdleCallback 需要调用的方法
 			function pastime(gen, timeout, backpacker, bag) {
 				// 我希望：尽量利用 requestIdleCallback 来运行 gen ，
@@ -285,7 +293,7 @@ export default {
 				// 声明 idleHandler 让 requestIdleCallback 进行调用
 				// 用 yieldResult 存放每次 gen.next() 的结果，包括 gen 的返回值：最后一次next()的结果
 				let yieldResult;
-				return new Promise(function(resolve) {
+				return new Promise(function(resolve, reject) {
 					function idleHandler(deadline) {
 						const genStart = Date.now();
 						// 只要 gen 没有 done，timeRemaining 还有时间，didTimeout 没到，就持续执行循环语句
@@ -293,8 +301,14 @@ export default {
 							(yieldResult = gen.next()).done === false &&
 							(deadline.timeRemaining() > 3 || deadline.didTimeout)
 						) {
-							console.log(deadline.timeRemaining());
-							console.log(deadline.didTimeout);
+							if (yieldResult.value.testament !== snapshotTestament) {
+								reject(
+									`Task aborted at - Cache: ${yieldResult.value.payload.cachePointer} List: ${
+										yieldResult.value.payload.listPointer
+									}`
+								);
+								return;
+							}
 							// 这个while循环的函数体其实没有意义，因为每次迭代的大部分内容就是去调用gen的next方法
 							// 之后可以传入条件，来判断是否要 break 掉循环，或是进行其它操作。
 						}
@@ -316,9 +330,13 @@ export default {
 						: requestIdleCallback(idleHandler, { timeout });
 				});
 			}
-			pastime(snapshotGen, 2000, vm, "urgent").then(result => {
-				vm.snapshotResolve(result);
-			});
+			pastime(snapshotGen, 2000, vm, "urgent")
+				.then(result => {
+					vm.snapshotResolve(result);
+				})
+				.catch(rejectReasons => {
+					console.log(rejectReasons);
+				});
 		},
 		migrateData: function() {
 			const vm = this;
@@ -331,15 +349,14 @@ export default {
 				const migrationGen = migrator();
 				window.requestAnimationFrame(() => {
 					console.log("LKKJ");
-					debugger;
 				});
-			});
+			}).catch;
 		}
 	},
 	watch: {
 		childrenInThisItem: {
-			handler: function() {
-				this.getSnapshotReady();
+			handler: function(nv) {
+				this.getSnapshotReady(nv);
 			},
 			immediate: true
 		}
