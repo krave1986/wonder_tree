@@ -1,6 +1,7 @@
 <template>
-	<div>
+	<div @click="drawOff">
 		{{ treeItem.label }}
+		<tree-flat-list :listItems="listItems" />
 	</div>
 </template>
 
@@ -215,6 +216,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey, testamen
 }
 
 export default {
+	name: "TreeNode",
 	props: {
 		treeItem: {}
 	},
@@ -226,6 +228,9 @@ export default {
 			urgent: false,
 			snapshots: []
 		};
+	},
+	components: {
+		TreeFlatList: () => import("./TreeFlatList.vue")
 	},
 	created() {
 		const vm = this;
@@ -271,6 +276,9 @@ export default {
 		}
 	},
 	methods: {
+		drawOff: function() {
+			this.downstreamSwitch = true;
+		},
 		getSnapshotReady: function(nv) {
 			const vm = this;
 			snapshotTestament = nv.slice(0);
@@ -342,6 +350,14 @@ export default {
 			const interval = this.migrationInterval;
 			// 不使用 promise，而是手动watch的方式，保证各种情况下，都可以在
 			// 该方法调用后，根据最新的 snapshots ，去做数据迁移。
+			this.$watch("snapshots", function(snapshots) {
+				// 获取 snapshots 后，对其进行查看。
+				// 整个 snapshots 是一个大数组，然后里面的每个元素，都有 parallel 这个属性。
+				// 默认情况下，跳过 parallel 的元素，仅拿出 result 进行赋值。
+				// 这里的每次赋值，都需要放进 generator 中，在每次 requestAnimationFrame 的时候，去调用
+				// debugger;
+				vm.childrenCache = snapshots[snapshots.length - 1].result;
+			});
 		}
 	},
 	watch: {

@@ -1,7 +1,7 @@
 <template>
 	<div :class="$style.curtain" :style="curtainStyle">
 		<transition-group tag="div" :class="$style.treeFlatList" v-use-resize-observer="transitionGroupDimensions">
-			<tree-node v-for="listItem in listItems" :key="listItem[uniqueKey]" :treeItem="listItem" />
+			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem" />
 		</transition-group>
 	</div>
 </template>
@@ -155,7 +155,7 @@ export default {
 		listItems: function(nv) {
 			const vm = this;
 			// 1、生成一个 generator
-			vm.migrationGen = migrationGenerator(vm);
+			// vm.migrationGen = migrationGenerator(vm);
 		}
 	},
 	destroyed() {
