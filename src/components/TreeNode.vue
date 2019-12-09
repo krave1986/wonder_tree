@@ -336,7 +336,9 @@ export default {
 			}
 			pastime(snapshotGen, 2000, vm, "urgent")
 				.then(result => {
-					vm.snapshots = result;
+					requestIdleCallback(() => {
+						vm.snapshots = result;
+					});
 				})
 				.catch(rejectReasons => {
 					console.log(rejectReasons);
