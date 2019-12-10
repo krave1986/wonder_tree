@@ -6,6 +6,8 @@
 </template>
 
 <script>
+import Assigner from "../helper/offloader/Assigner";
+
 const componentName = "TreeNode";
 let snapshotTestament = 1;
 
@@ -375,6 +377,7 @@ export default {
 		setTimeout(() => {
 			vm.manuallyWatchSnapshots();
 		});
+		console.log(new Assigner());
 	}
 };
 </script>
