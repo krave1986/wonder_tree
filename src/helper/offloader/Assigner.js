@@ -7,11 +7,15 @@ export default class Assigner {
 	streamlinePromise;
 	// 启动 streamline
 	startStreamline(operate = () => {}, ...argumentsForOperate) {
+		// stable this
+		const stableThis = this;
 		// 生成一个新的 Symbol 赋值给 streamlineSymbol
 		const symbolForThisLine = Symbol();
 		this.streamlineSymbol = symbolForThisLine;
 		// 方法调用中的this指向调用人，父调指父，子调指子
 		// operate的具体内容，由子类进行提供
-		operate.call(this, symbolForThisLine, ...argumentsForOperate);
+		return new Promise(function(resolve, reject) {
+			operate.call(stableThis, symbolForThisLine, resolve, reject, argumentsForOperate);
+		});
 	}
 }
