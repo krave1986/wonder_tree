@@ -1,11 +1,12 @@
 <template>
-	<div @click="drawOff">
+	<div @click.stop="drawOff">
 		{{ treeItem.label }}
 		<tree-flat-list :listItems="listItems" />
 	</div>
 </template>
 
 <script>
+import IdleAssigner from "../helper/offloader/IdleAssigner";
 import Assigner from "../helper/offloader/Assigner";
 
 const componentName = "TreeNode";
@@ -68,7 +69,7 @@ function* migrator(step, base, cache, uniqueKey) {
 	}
 }
 
-function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey, testament) {
+function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
 	// 比较方法，纯粹比较相同还是不同
 	function compare(a, b) {
 		// 如果传入了 uniqueKey 的话，则比较 uniqueKey 属性的值
@@ -150,7 +151,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey, testamen
 			// 双边指针 +1
 			cachePointer += 1;
 			listPointer += 1;
-			yield { testament, payload: { cachePointer, cache, listPointer, list } };
+			yield { payload: { cachePointer, cache, listPointer, list } };
 		}
 		// 检查循环是否结束
 		checkWhetherLoopOver();
@@ -193,7 +194,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey, testamen
 				swapElementInCache(cachePointer, indexFoundInCache, itemInListForThisLoop);
 			}
 		}
-		yield { testament, payload: { cachePointer, cache, listPointer, list } };
+		yield { payload: { cachePointer, cache, listPointer, list } };
 	}
 	// 如果 list 干涸，cache 未干涸，则将 cache 中剩余的内容进行擦除
 	if (listDrained === true && !cacheDrained) {
@@ -212,7 +213,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey, testamen
 		cachePointer++;
 		snapshot.push({ parallel: false, result: cache.slice(0) });
 		checkWhetherLoopOver();
-		yield { testament, payload: { cachePointer, cache, listPointer, list } };
+		yield { payload: { cachePointer, cache, listPointer, list } };
 	}
 	return snapshot;
 }
@@ -228,7 +229,9 @@ export default {
 			childrenCache: [],
 			customDataAbc: { ...this.customData.generator() },
 			urgent: false,
-			snapshots: []
+			snapshots: [],
+			a: new Assigner(),
+			idaaaa: new IdleAssigner()
 		};
 	},
 	components: {
@@ -288,9 +291,9 @@ export default {
 			const snapshotGen = getSnapshotWhenSyncingTwoArrays(
 				this.childrenCache,
 				this.childrenInThisItem,
-				this.uniqueKey,
+				this.uniqueKey
 				// this.childrenInThisItem
-				snapshotTestament
+				// snapshotTestament
 			);
 			// 声明 requestIdleCallback 需要调用的方法
 			function pastime(gen, timeout, backpacker, bag) {
@@ -309,9 +312,7 @@ export default {
 						) {
 							if (yieldResult.value.testament !== snapshotTestament) {
 								reject(
-									`Task aborted at - Cache: ${yieldResult.value.payload.cachePointer} List: ${
-										yieldResult.value.payload.listPointer
-									}`
+									`Task aborted at - Cache: ${yieldResult.value.payload.cachePointer} List: ${yieldResult.value.payload.listPointer}`
 								);
 								return;
 							}
@@ -367,7 +368,7 @@ export default {
 	watch: {
 		childrenInThisItem: {
 			handler: function(nv) {
-				this.getSnapshotReady(nv);
+				// this.getSnapshotReady(nv);
 			},
 			immediate: true
 		}
@@ -377,7 +378,9 @@ export default {
 		setTimeout(() => {
 			vm.manuallyWatchSnapshots();
 		});
-		console.log(new Assigner());
+		// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
+		const snapshotGen = getSnapshotWhenSyncingTwoArrays(this.childrenCache, this.childrenInThisItem, this.uniqueKey);
+		vm.idaaaa.assign();
 	}
 };
 </script>
