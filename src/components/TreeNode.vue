@@ -8,6 +8,7 @@
 <script>
 import IdleAssigner from "../helper/offloader/IdleAssigner";
 import Assigner from "../helper/offloader/Assigner";
+import Offloader from "../helper/offloader/Offloader";
 
 const componentName = "TreeNode";
 let snapshotTestament = 1;
@@ -65,7 +66,6 @@ function* migrator(step, base, cache, uniqueKey) {
 			cache.splice(pointer, 0, ...migrationUnit);
 		}
 		var abc = yield migrationUnitEndBefore;
-		debugger;
 	}
 }
 
@@ -231,7 +231,7 @@ export default {
 			urgent: false,
 			snapshots: [],
 			a: new Assigner(),
-			idaaaa: new IdleAssigner()
+			idaaaa: Offloader.scheduleIdleTask()
 		};
 	},
 	components: {
@@ -360,7 +360,6 @@ export default {
 				// 整个 snapshots 是一个大数组，然后里面的每个元素，都有 parallel 这个属性。
 				// 默认情况下，跳过 parallel 的元素，仅拿出 result 进行赋值。
 				// 这里的每次赋值，都需要放进 generator 中，在每次 requestAnimationFrame 的时候，去调用
-				// debugger;
 				vm.childrenCache = snapshots[snapshots.length - 1].result;
 			});
 		}
@@ -380,7 +379,17 @@ export default {
 		});
 		// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
 		const snapshotGen = getSnapshotWhenSyncingTwoArrays(this.childrenCache, this.childrenInThisItem, this.uniqueKey);
-		vm.idaaaa.assign();
+		vm.idaaaa
+			.assign(snapshotGen, 2000, vm, "urgent")
+			.then(res => {
+				console.log(res, "111111");
+			})
+			.catch(err => {
+				console.log(err);
+			});
+		setTimeout(() => {
+			vm.idaaaa.streamlineSymbol = Symbol();
+		}, 55);
 	}
 };
 </script>

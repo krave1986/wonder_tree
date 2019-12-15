@@ -7,15 +7,17 @@ function operate(symbol, resolve, reject, { gen, timeout, backpacker, bag }) {
 	// 声明 idleHandler 让 requestIdleCallback 进行调用
 	// 用 yieldResult 存放每次 gen.next() 的结果，包括 gen 的返回值：最后一次next()的结果
 	let yieldResult;
-	console.log(symbol === this.streamlineSymbol, "SYMBBBBBB");
-
-	debugger;
-	gen, timeout, backpacker, bag;
+	const stableThis = this;
+	// 把 requestIdleCallback 做成有据可查的，封装成一个 requestRecordedIdleCallback
+	function requestRecordedIdleCallback(stableThis, handler, option) {
+		cancelIdleCallback(stableThis.callbackExecutorId);
+		stableThis.callbackExecutorId = requestIdleCallback(handler, option);
+	}
 	function idleHandler(deadline) {
 		const genStart = Date.now();
 		// 只要 gen 没有 done，timeRemaining 还有时间，didTimeout 没到，就持续执行循环语句
 		while ((yieldResult = gen.next()).done === false && (deadline.timeRemaining() > 3 || deadline.didTimeout)) {
-			if (symbol !== this.streamlineSymbol) {
+			if (symbol !== stableThis.streamlineSymbol) {
 				reject(
 					`Task aborted at - Cache: ${yieldResult.value.payload.cachePointer} List: ${yieldResult.value.payload.listPointer}`
 				);
@@ -33,13 +35,13 @@ function operate(symbol, resolve, reject, { gen, timeout, backpacker, bag }) {
 			console.log("OUT!!!! +++++++++++++++++", timeout);
 			// 判断是不是 urgent ，urgent 的话，
 			getPropertyFromString(backpacker, bag) === true
-				? requestIdleCallback(idleHandler, { timeout: 1 })
-				: requestIdleCallback(idleHandler, { timeout });
+				? requestRecordedIdleCallback(stableThis, idleHandler, { timeout: 1 })
+				: requestRecordedIdleCallback(stableThis, idleHandler, { timeout });
 		} else resolve(yieldResult.value);
 	}
 	getPropertyFromString(backpacker, bag) === true
-		? requestIdleCallback(idleHandler, { timeout: 1 })
-		: requestIdleCallback(idleHandler, { timeout });
+		? requestRecordedIdleCallback(stableThis, idleHandler, { timeout: 1 })
+		: requestRecordedIdleCallback(stableThis, idleHandler, { timeout });
 }
 
 export default class IdleAssigner extends Assigner {
@@ -47,6 +49,6 @@ export default class IdleAssigner extends Assigner {
 		super();
 	}
 	assign(gen, timeout, backpacker, bag) {
-		this.startStreamline(operate, { gen, timeout, backpacker, bag });
+		return this.startStreamline(operate, { gen, timeout, backpacker, bag });
 	}
 }

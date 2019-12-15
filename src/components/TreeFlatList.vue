@@ -1,8 +1,11 @@
 <template>
 	<div :class="$style.curtain" :style="curtainStyle">
-		<transition-group tag="div" :class="$style.treeFlatList" v-use-resize-observer="transitionGroupDimensions">
+		<!-- <transition-group tag="div" :class="$style.treeFlatList" v-use-resize-observer="transitionGroupDimensions">
 			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem" />
-		</transition-group>
+		</transition-group> -->
+		<div :class="$style.treeFlatList" v-use-resize-observer="transitionGroupDimensions">
+			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem" />
+		</div>
 	</div>
 </template>
 

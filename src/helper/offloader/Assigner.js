@@ -6,7 +6,7 @@ export default class Assigner {
 	// 已触发的 streamline 所对应的 promise 的 resolve 和 reject 对
 	streamlinePromise;
 	// 启动 streamline
-	startStreamline(operate = () => {}, ...argumentsForOperate) {
+	startStreamline(operate = () => {}, argumentsForOperate) {
 		// stable this
 		const stableThis = this;
 		// 生成一个新的 Symbol 赋值给 streamlineSymbol

@@ -12,7 +12,7 @@
 <script>
 import TheTree from "./components/TheTree";
 import axios from "axios";
-
+import Vue from "vue";
 export default {
 	name: "app",
 	components: {
