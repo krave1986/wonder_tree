@@ -13,6 +13,7 @@
 import TreeNode from "./TreeNode";
 
 function* migrationGenerator(vm) {
+	yield 1;
 	// 记录 listItems 的长度
 	const lengthOfListItems = vm.listItems.length;
 }

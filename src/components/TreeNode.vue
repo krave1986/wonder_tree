@@ -34,7 +34,7 @@ function getPropertyFromString(obj, keyToken) {
 	}, obj);
 }
 
-function* migrator(step, base, cache, uniqueKey) {
+function* igrator(step, base, cache, uniqueKey) {
 	console.log(cache);
 	// migrationUnitEndBefore 用来存放本次迭代单元中，末位元素的索引之后的索引
 	let migrationUnitEndBefore;
@@ -67,6 +67,22 @@ function* migrator(step, base, cache, uniqueKey) {
 		}
 		var abc = yield migrationUnitEndBefore;
 	}
+}
+
+function* migrator(step, snapshots, cache, uniqueKey) {
+	function* migrate(index) {
+		const indexInAction = Math.min(index, snapshots.length - 1);
+		console.log(snapshots[indexInAction]);
+		// 赋值完成后，如果 indexInAction 等于 snapshots.length - 1
+		// 则说明最后一个镜像已经赋值完毕，否则，继续迁移下一个镜像对象
+		if (indexInAction !== snapshots.length - 1) {
+			yield indexInAction;
+			yield* migrate(index + step);
+		}
+	}
+	// index 表示第一次需要迁移的镜像的索引
+	const index = step - 1;
+	yield* migrate(index);
 }
 
 function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
@@ -231,7 +247,8 @@ export default {
 			urgent: false,
 			snapshots: [],
 			a: new Assigner(),
-			idaaaa: Offloader.scheduleIdleTask()
+			idaaaa: Offloader.scheduleIdleTask(),
+			ani: Offloader.scheduleAnimationTask()
 		};
 	},
 	components: {
@@ -389,7 +406,7 @@ export default {
 			});
 		setTimeout(() => {
 			vm.idaaaa.streamlineSymbol = Symbol();
-		}, 55);
+		}, 25);
 	}
 };
 </script>

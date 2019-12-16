@@ -9,7 +9,7 @@ export default class Assigner {
 	startStreamline(operate = () => {}, argumentsForOperate) {
 		// stable this
 		const stableThis = this;
-		// 生成一个新的 Symbol 赋值给 streamlineSymbol
+		// 生成一个新的 Symbol 赋值给 streamlineSymbol，表示这条流水线的id
 		const symbolForThisLine = Symbol();
 		this.streamlineSymbol = symbolForThisLine;
 		// 方法调用中的this指向调用人，父调指父，子调指子
