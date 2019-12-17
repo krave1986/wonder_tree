@@ -35,7 +35,6 @@ function getPropertyFromString(obj, keyToken) {
 }
 
 function* igrator(step, base, cache, uniqueKey) {
-	console.log(cache);
 	// migrationUnitEndBefore 用来存放本次迭代单元中，末位元素的索引之后的索引
 	let migrationUnitEndBefore;
 	let pointer = 0;
@@ -69,10 +68,10 @@ function* igrator(step, base, cache, uniqueKey) {
 	}
 }
 
-function* migrator(step, snapshots, cache, uniqueKey) {
+function* migrator(step, snapshots, vm) {
 	function* migrate(index) {
 		const indexInAction = Math.min(index, snapshots.length - 1);
-		console.log(snapshots[indexInAction]);
+		vm.childrenCache = snapshots[indexInAction] ? snapshots[indexInAction].result : [];
 		// 赋值完成后，如果 indexInAction 等于 snapshots.length - 1
 		// 则说明最后一个镜像已经赋值完毕，否则，继续迁移下一个镜像对象
 		if (indexInAction !== snapshots.length - 1) {
@@ -85,7 +84,7 @@ function* migrator(step, snapshots, cache, uniqueKey) {
 	yield* migrate(index);
 }
 
-function* getSnapshotWhenSyncingTwoArrays(target, reference, uniqueKey) {
+function* getSnapshotWhenSyncingTwoArrays(target, reference = [], uniqueKey) {
 	// 比较方法，纯粹比较相同还是不同
 	function compare(a, b) {
 		// 如果传入了 uniqueKey 的话，则比较 uniqueKey 属性的值
@@ -241,10 +240,11 @@ export default {
 	},
 	data() {
 		return {
-			downstreamSwitch: false,
+			downstreamSwitch: true,
 			childrenCache: [],
 			customDataAbc: { ...this.customData.generator() },
 			urgent: false,
+			animationUrgent: false,
 			snapshots: [],
 			a: new Assigner(),
 			idaaaa: Offloader.scheduleIdleTask(),
@@ -301,69 +301,69 @@ export default {
 		drawOff: function() {
 			this.downstreamSwitch = true;
 		},
-		getSnapshotReady: function(nv) {
-			const vm = this;
-			snapshotTestament = nv.slice(0);
-			// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
-			const snapshotGen = getSnapshotWhenSyncingTwoArrays(
-				this.childrenCache,
-				this.childrenInThisItem,
-				this.uniqueKey
-				// this.childrenInThisItem
-				// snapshotTestament
-			);
-			// 声明 requestIdleCallback 需要调用的方法
-			function pastime(gen, timeout, backpacker, bag) {
-				// 我希望：尽量利用 requestIdleCallback 来运行 gen ，
-				// 并在 timeout 达到之前，尽可能完成整个 gen 的运行。
-				// 声明 idleHandler 让 requestIdleCallback 进行调用
-				// 用 yieldResult 存放每次 gen.next() 的结果，包括 gen 的返回值：最后一次next()的结果
-				let yieldResult;
-				return new Promise(function(resolve, reject) {
-					function idleHandler(deadline) {
-						const genStart = Date.now();
-						// 只要 gen 没有 done，timeRemaining 还有时间，didTimeout 没到，就持续执行循环语句
-						while (
-							(yieldResult = gen.next()).done === false &&
-							(deadline.timeRemaining() > 3 || deadline.didTimeout)
-						) {
-							if (yieldResult.value.testament !== snapshotTestament) {
-								reject(
-									`Task aborted at - Cache: ${yieldResult.value.payload.cachePointer} List: ${yieldResult.value.payload.listPointer}`
-								);
-								return;
-							}
-							// 这个while循环的函数体其实没有意义，因为每次迭代的大部分内容就是去调用gen的next方法
-							// 之后可以传入条件，来判断是否要 break 掉循环，或是进行其它操作。
-						}
-						const genEnd = Date.now();
-						// 到这一步，已经出了while循环。如果 yieldResult.done === false，
-						// 表示 gen 还没运行完，给的 timeout 也还有时间，只是当前 idle tick 没时间了。
-						// 需要再排一个 idleCallback 才能让 gen 执行完.
-						if (yieldResult.done === false) {
-							timeout = Math.max(timeout - genEnd + genStart, 1);
-							console.log("OUT!!!! +++++++++++++++++", timeout);
-							// 判断是不是 urgent ，urgent 的话，
-							getPropertyFromString(backpacker, bag) === true
-								? requestIdleCallback(idleHandler, { timeout: 1 })
-								: requestIdleCallback(idleHandler, { timeout });
-						} else resolve(yieldResult.value);
-					}
-					getPropertyFromString(backpacker, bag) === true
-						? requestIdleCallback(idleHandler, { timeout: 1 })
-						: requestIdleCallback(idleHandler, { timeout });
-				});
-			}
-			pastime(snapshotGen, 2000, vm, "urgent")
-				.then(result => {
-					requestIdleCallback(() => {
-						vm.snapshots = result;
-					});
-				})
-				.catch(rejectReasons => {
-					console.log(rejectReasons);
-				});
-		},
+		// getSnapshotReady: function(nv) {
+		// 	const vm = this;
+		// 	snapshotTestament = nv.slice(0);
+		// 	// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
+		// 	const snapshotGen = getSnapshotWhenSyncingTwoArrays(
+		// 		this.childrenCache,
+		// 		this.childrenInThisItem,
+		// 		this.uniqueKey
+		// 		// this.childrenInThisItem
+		// 		// snapshotTestament
+		// 	);
+		// 	// 声明 requestIdleCallback 需要调用的方法
+		// 	function pastime(gen, timeout, backpacker, bag) {
+		// 		// 我希望：尽量利用 requestIdleCallback 来运行 gen ，
+		// 		// 并在 timeout 达到之前，尽可能完成整个 gen 的运行。
+		// 		// 声明 idleHandler 让 requestIdleCallback 进行调用
+		// 		// 用 yieldResult 存放每次 gen.next() 的结果，包括 gen 的返回值：最后一次next()的结果
+		// 		let yieldResult;
+		// 		return new Promise(function(resolve, reject) {
+		// 			function idleHandler(deadline) {
+		// 				const genStart = Date.now();
+		// 				// 只要 gen 没有 done，timeRemaining 还有时间，didTimeout 没到，就持续执行循环语句
+		// 				while (
+		// 					(yieldResult = gen.next()).done === false &&
+		// 					(deadline.timeRemaining() > 3 || deadline.didTimeout)
+		// 				) {
+		// 					if (yieldResult.value.testament !== snapshotTestament) {
+		// 						reject(
+		// 							`Task aborted at - Cache: ${yieldResult.value.payload.cachePointer} List: ${yieldResult.value.payload.listPointer}`
+		// 						);
+		// 						return;
+		// 					}
+		// 					// 这个while循环的函数体其实没有意义，因为每次迭代的大部分内容就是去调用gen的next方法
+		// 					// 之后可以传入条件，来判断是否要 break 掉循环，或是进行其它操作。
+		// 				}
+		// 				const genEnd = Date.now();
+		// 				// 到这一步，已经出了while循环。如果 yieldResult.done === false，
+		// 				// 表示 gen 还没运行完，给的 timeout 也还有时间，只是当前 idle tick 没时间了。
+		// 				// 需要再排一个 idleCallback 才能让 gen 执行完.
+		// 				if (yieldResult.done === false) {
+		// 					timeout = Math.max(timeout - genEnd + genStart, 1);
+		// 					console.log("OUT!!!! +++++++++++++++++", timeout);
+		// 					// 判断是不是 urgent ，urgent 的话，
+		// 					getPropertyFromString(backpacker, bag) === true
+		// 						? requestIdleCallback(idleHandler, { timeout: 1 })
+		// 						: requestIdleCallback(idleHandler, { timeout });
+		// 				} else resolve(yieldResult.value);
+		// 			}
+		// 			getPropertyFromString(backpacker, bag) === true
+		// 				? requestIdleCallback(idleHandler, { timeout: 1 })
+		// 				: requestIdleCallback(idleHandler, { timeout });
+		// 		});
+		// 	}
+		// 	pastime(snapshotGen, 2000, vm, "urgent")
+		// 		.then(result => {
+		// 			requestIdleCallback(() => {
+		// 				vm.snapshots = result;
+		// 			});
+		// 		})
+		// 		.catch(rejectReasons => {
+		// 			console.log(rejectReasons);
+		// 		});
+		// },
 		manuallyWatchSnapshots: function() {
 			const vm = this;
 			// 1、迁移步进为： this.migrationStep
@@ -399,14 +399,12 @@ export default {
 		vm.idaaaa
 			.assign(snapshotGen, 2000, vm, "urgent")
 			.then(res => {
-				console.log(res, "111111");
+				const migratorGen = migrator(vm.migrationStep, res, vm);
+				vm.ani.assign(migratorGen, 0);
 			})
 			.catch(err => {
 				console.log(err);
 			});
-		setTimeout(() => {
-			vm.idaaaa.streamlineSymbol = Symbol();
-		}, 25);
 	}
 };
 </script>

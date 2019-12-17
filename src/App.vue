@@ -39,7 +39,7 @@ export default {
 		};
 	},
 	mounted() {
-		axios("/baohanwangguan1.json").then(({ data }) => {
+		axios("/baohanwangguan.json").then(({ data }) => {
 			this.treeData = data;
 		});
 	},
@@ -74,6 +74,6 @@ body {
 	margin: 0;
 }
 #app {
-	--tree-flat-list-vertical-transition: height 1s ease-in;
+	--tree-flat-list-vertical-transition: height 1s ease-out;
 }
 </style>

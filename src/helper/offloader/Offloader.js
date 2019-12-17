@@ -1,6 +1,5 @@
-// import Assigner from "./Assigner";
 import IdleAssigner from "./IdleAssigner";
-import AnimationAssigner from "./AnimationAssigner";
+import AnimationFrameAssigner from "./AnimationFrameAssigner";
 
 export default class OffloadWorker {
 	constructor() {}
@@ -8,6 +7,6 @@ export default class OffloadWorker {
 		return new IdleAssigner();
 	}
 	static scheduleAnimationTask() {
-		return new AnimationAssigner();
+		return new AnimationFrameAssigner();
 	}
 }
