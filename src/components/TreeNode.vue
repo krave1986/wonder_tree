@@ -1,7 +1,14 @@
 <template>
-	<div @click.stop="drawOff">
-		{{ treeItem.label }}
-		<tree-flat-list :listItems="listItems" />
+	<div :class="$style.node" @click.stop="drawOff">
+		<div :class="$style.leftSlot">
+			<svg class="icon" aria-hidden="true">
+				<use xlink:href="#iconzuidahua"></use>
+			</svg>
+		</div>
+		<div :class="$style.nodeMain">
+			<div :class="$style.nodeContent">{{ treeItem.label }}</div>
+			<tree-flat-list :listItems="listItems" />
+		</div>
 	</div>
 </template>
 
@@ -69,6 +76,10 @@ function* igrator(step, base, cache, uniqueKey) {
 }
 
 function* migrator(step, snapshots, vm) {
+	if (step === "all") {
+		// debugger;
+		step = snapshots.length;
+	}
 	function* migrate(index) {
 		const indexInAction = Math.min(index, snapshots.length - 1);
 		vm.childrenCache = snapshots[indexInAction] ? snapshots[indexInAction].result : [];
@@ -359,3 +370,20 @@ export default {
 	}
 };
 </script>
+
+<style module>
+.node {
+	display: flex;
+}
+.node > .leftSlot,
+.node > .nodeMain > .nodeContent {
+	padding: var(--tree-node-padding, 7px 0);
+}
+.nodeContent {
+	height: var(--tree-node-height, fit-content);
+}
+.nodeMain {
+	flex-grow: 1;
+	margin: var(--tree-node-margin, 0 0 0 8px);
+}
+</style>

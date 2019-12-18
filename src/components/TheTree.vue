@@ -1,5 +1,5 @@
 <template>
-	<div :class="containerClasses" :style="containerStyle" style="width:400px; height: 600px">
+	<div :class="containerClasses" :style="containerStyle" style="overflow-x: hidden; padding: var(--tree-padding, 0 0 0 8px)">
 		<tree-flat-list :listItems="treeData" />
 	</div>
 </template>
@@ -78,6 +78,9 @@ export default {
 .treeContainer {
 	background-color: darkkhaki;
 	overflow: auto;
+}
+.treeContainer > * {
+	width: inherit;
 }
 .treeContainer:hover {
 	/* 鼠标hover到treeContainer后，做好滚动的准备 */

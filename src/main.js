@@ -3,6 +3,8 @@ import App from "./App.vue";
 
 import "./directives/index";
 
+import "./assets/iconfont/iconfont";
+
 Vue.config.productionTip = false;
 
 new Vue({

@@ -2,21 +2,23 @@
 	<div :class="$style.curtain" :style="curtainStyle">
 		<!-- <transition-group tag="div" :class="$style.treeFlatList" v-use-resize-observer="transitionGroupDimensions">
 			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem" />
-		</transition-group> -->
+		</transition-group>
 		<div :class="$style.treeFlatList" v-use-resize-observer="transitionGroupDimensions">
 			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem" />
-		</div>
+		</div> -->
+		<component
+			v-bind:is="treeFlatListComponent"
+			tag="div"
+			:class="$style.treeFlatList"
+			v-use-resize-observer="transitionGroupDimensions"
+		>
+			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem" />
+		</component>
 	</div>
 </template>
 
 <script>
 import TreeNode from "./TreeNode";
-
-function* migrationGenerator(vm) {
-	yield 1;
-	// 记录 listItems 的长度
-	const lengthOfListItems = vm.listItems.length;
-}
 
 export default {
 	name: "TreeFlatList",
@@ -28,6 +30,11 @@ export default {
 		parent: {}
 	},
 	inject: {
+		treeFlatListComponent: {
+			default() {
+				return "div";
+			}
+		},
 		watchToBaseForTreeFlatList: {
 			default() {
 				return {};
@@ -49,8 +56,6 @@ export default {
 			default() {
 				return function() {
 					if (!this.parent) {
-						// 如果没有 parent ，说明很可能是顶层，是顶层的话，默认会在 mounted 之后，做 data migration
-						this.migrateData();
 						this.openOrClose = true;
 					}
 				};
@@ -107,14 +112,6 @@ export default {
 		unwatchAll: function() {
 			this.unwatches.forEach(unwatch => unwatch());
 			this.unwatches = [];
-		},
-		migrateData: function() {
-			let stepInAction;
-			if (this.migrationStep === "all") {
-				stepInAction = this.listItems.length;
-			} else {
-				stepInAction = this.migrationStep;
-			}
 		}
 	},
 	created() {
@@ -155,13 +152,7 @@ export default {
 		// 调用 afterMounted 的 注入钩
 		this.afterMountedForTreeFlatList();
 	},
-	watch: {
-		listItems: function(nv) {
-			const vm = this;
-			// 1、生成一个 generator
-			// vm.migrationGen = migrationGenerator(vm);
-		}
-	},
+	watch: {},
 	destroyed() {
 		this.unwatchAll();
 	}

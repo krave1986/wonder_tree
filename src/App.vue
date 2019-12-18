@@ -6,6 +6,7 @@
 			:treeData="treeData"
 			:watchToId="'1'"
 			:childrenIdentifiers="['ruleSets', 'rules']"
+			:style="'width:400px; height: 600px'"
 		></TheTree>
 	</div>
 </template>
@@ -70,10 +71,26 @@ export default {
 </script>
 
 <style>
+* {
+	line-height: 1em;
+}
 body {
 	margin: 0;
+	--tree-node-height: 1rem;
 }
 #app {
 	--tree-flat-list-vertical-transition: height 1s ease-out;
+}
+svg {
+	display: block;
+}
+</style>
+<style type="text/css">
+.icon {
+	width: 1em;
+	height: 1em;
+	vertical-align: -0.15em;
+	fill: currentColor;
+	overflow: hidden;
 }
 </style>
