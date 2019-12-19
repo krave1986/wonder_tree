@@ -1,11 +1,5 @@
 <template>
-	<div :class="$style.curtain" :style="curtainStyle">
-		<!-- <transition-group tag="div" :class="$style.treeFlatList" v-use-resize-observer="transitionGroupDimensions">
-			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem" />
-		</transition-group>
-		<div :class="$style.treeFlatList" v-use-resize-observer="transitionGroupDimensions">
-			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem" />
-		</div> -->
+	<div :class="$style.curtain" :style="curtainStyle" @transitionend.self.stop="resetVerticalTransitionOrNot">
 		<component
 			v-bind:is="treeFlatListComponent"
 			tag="div"
@@ -21,13 +15,19 @@
 import TreeNode from "./TreeNode";
 
 export default {
+	inheritAttrs: false,
 	name: "TreeFlatList",
 	components: {
 		TreeNode
 	},
 	props: {
 		listItems: {},
-		parent: {}
+		parent: {},
+		openOrCloseFromVModel: { type: Boolean, default: false }
+	},
+	model: {
+		prop: "openOrCloseFromVModel",
+		event: "toggle"
 	},
 	inject: {
 		treeFlatListComponent: {
@@ -54,11 +54,7 @@ export default {
 		},
 		afterMountedForTreeFlatList: {
 			default() {
-				return function() {
-					if (!this.parent) {
-						this.openOrClose = true;
-					}
-				};
+				return function() {};
 			}
 		},
 		watchToId: {
@@ -87,31 +83,49 @@ export default {
 		verticalTransitionStyle: function() {
 			return this.verticalTransitionOrNot
 				? {
-						transition: "var(--tree-flat-list-vertical-transition, height 1s ease-in)"
+						transition: "var(--tree-flat-list-vertical-transition, height 1s ease-out)"
 				  }
 				: {};
 		},
 		curtainStyle: function() {
 			return { ...this.heightStyle, ...this.verticalTransitionStyle };
+		},
+		openOrClose: {
+			get() {
+				return this.openOrCloseFromVModel;
+			},
+			set(nv) {
+				this.$emit("toggle", nv);
+			}
+		}
+	},
+	watch: {
+		openOrClose: function() {
+			if (this.transitionGroupHeight !== 0) {
+				this.verticalTransitionOrNot = true;
+			}
 		}
 	},
 	data() {
 		return {
 			unwatches: [],
-			openOrClose: true,
+			// openOrClose: true,
 			itemsToBeDisplayed: [],
 			migrationGen: {},
 			transitionGroupDimensions: {},
 			zeroHeightStyle: {
 				height: "0"
 			},
-			verticalTransitionOrNot: true
+			verticalTransitionOrNot: false
 		};
 	},
 	methods: {
 		unwatchAll: function() {
 			this.unwatches.forEach(unwatch => unwatch());
 			this.unwatches = [];
+		},
+		resetVerticalTransitionOrNot: function() {
+			this.verticalTransitionOrNot = false;
 		}
 	},
 	created() {
@@ -152,7 +166,6 @@ export default {
 		// 调用 afterMounted 的 注入钩
 		this.afterMountedForTreeFlatList();
 	},
-	watch: {},
 	destroyed() {
 		this.unwatchAll();
 	}

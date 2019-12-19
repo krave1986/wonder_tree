@@ -1,5 +1,5 @@
 <template>
-	<div id="app" @click="newRandom">
+	<div id="app">
 		<TheTree
 			:migrationStep="1"
 			:migrationInterval="500.0"
@@ -32,7 +32,6 @@ export default {
 						this.openOrClose = !this.openOrClose;
 					},
 					options: {
-						// immediate: true,
 						deep: true
 					}
 				}
@@ -54,9 +53,11 @@ export default {
 		return {
 			watchToBaseForTreeFlatList: vm.watchToBaseForTreeFlatList,
 			watchToHandlersForTreeFlatList: vm.watchToHandlersForTreeFlatList,
-			// afterMountedForTreeFlatList: function() {}
+			afterMountedForTreeFlatList: function() {},
 			beforeMountedForTreeFlatList: function() {
-				this.openOrClose = true;
+				if (this.$attrs.parentNode === undefined) {
+					this.openOrClose = true;
+				}
 			},
 			customDataForTreeNode: {
 				generator() {
@@ -64,7 +65,8 @@ export default {
 						abc: true
 					};
 				}
-			}
+			},
+			treeFlatListComponent: "div"
 		};
 	}
 };

@@ -1,13 +1,18 @@
 <template>
 	<div :class="$style.node" @click.stop="drawOff">
-		<div :class="$style.leftSlot">
-			<svg class="icon" aria-hidden="true">
-				<use xlink:href="#iconzuidahua"></use>
+		<div :class="$style.leftSlot" @click="leftClickHandler">
+			<svg
+				class="icon"
+				aria-hidden="true"
+				style="transition: transform 1s"
+				:style="{ transform: 'rotate(' + openOrClose ? '90deg' : '0deg' + '' }"
+			>
+				<use xlink:href="#iconzhixiang-1"></use>
 			</svg>
 		</div>
 		<div :class="$style.nodeMain">
 			<div :class="$style.nodeContent">{{ treeItem.label }}</div>
-			<tree-flat-list :listItems="listItems" />
+			<tree-flat-list :parentNode="nodeInstance" :listItems="listItems" v-model="openOrClose" />
 		</div>
 	</div>
 </template>
@@ -18,7 +23,6 @@ import Assigner from "../helper/offloader/Assigner";
 import Offloader from "../helper/offloader/Offloader";
 
 const componentName = "TreeNode";
-let snapshotTestament = 1;
 
 function eliminateDuplicationsInRestOfCache(migrationUnit, index, cache, key) {
 	// cache 剩余的，需要做去重校验的部分
@@ -257,9 +261,10 @@ export default {
 			urgent: false,
 			animationUrgent: false,
 			snapshots: [],
-			a: new Assigner(),
 			idleScheduler: Offloader.scheduleIdleTask(),
-			ani: Offloader.scheduleAnimationTask()
+			ani: Offloader.scheduleAnimationTask(),
+			openOrClose: false,
+			nodeInstance: this
 		};
 	},
 	components: {
@@ -309,6 +314,9 @@ export default {
 		}
 	},
 	methods: {
+		leftClickHandler: function() {
+			this.openOrClose = !this.openOrClose;
+		},
 		drawOff: function() {
 			this.downstreamSwitch = true;
 		},
