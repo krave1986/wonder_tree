@@ -1,18 +1,24 @@
 <template>
 	<div :class="$style.node" @click.stop="drawOff">
 		<div :class="$style.leftSlot" @click="leftClickHandler">
-			<svg
-				class="icon"
-				aria-hidden="true"
-				style="transition: transform 1s"
-				:style="{ transform: 'rotate(' + openOrClose ? '90deg' : '0deg' + '' }"
-			>
-				<use xlink:href="#iconzhixiang-1"></use>
-			</svg>
+			<slot name="left">
+				<svg
+					class="icon"
+					aria-hidden="true"
+					style="transition: transform 0.6s"
+					:style="{ transform: 'rotate(' + (openOrClose ? '90deg' : '0deg') + ')' }"
+				>
+					<use xlink:href="#iconzhixiang-1"></use>
+				</svg>
+			</slot>
 		</div>
 		<div :class="$style.nodeMain">
 			<div :class="$style.nodeContent">{{ treeItem.label }}</div>
-			<tree-flat-list :parentNode="nodeInstance" :listItems="listItems" v-model="openOrClose" />
+			<tree-flat-list :parentNode="nodeInstance" :listItems="listItems" v-model="openOrClose">
+				<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
+					<slot :name="slotName" v-bind="scope"></slot>
+				</template>
+			</tree-flat-list>
 		</div>
 	</div>
 </template>

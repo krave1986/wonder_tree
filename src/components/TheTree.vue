@@ -1,6 +1,10 @@
 <template>
 	<div :class="containerClasses" :style="containerStyle" style="overflow-x: hidden; padding: var(--tree-padding, 0 0 0 8px)">
-		<tree-flat-list :listItems="treeData" :openOrCloseFromVModel="true" />
+		<tree-flat-list :listItems="treeData" :openOrCloseFromVModel="true">
+			<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
+				<slot :name="slotName" v-bind="scope"></slot>
+			</template>
+		</tree-flat-list>
 	</div>
 </template>
 

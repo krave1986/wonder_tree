@@ -6,7 +6,11 @@
 			:class="$style.treeFlatList"
 			v-use-resize-observer="transitionGroupDimensions"
 		>
-			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem" />
+			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem">
+				<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
+					<slot :name="slotName" v-bind="scope"></slot>
+				</template>
+			</tree-node>
 		</component>
 	</div>
 </template>

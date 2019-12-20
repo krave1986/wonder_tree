@@ -7,7 +7,11 @@
 			:watchToId="'1'"
 			:childrenIdentifiers="['ruleSets', 'rules']"
 			:style="'width:400px; height: 600px'"
-		></TheTree>
+		>
+			<template v-slot:left
+				><div>不不不</div></template
+			>
+		</TheTree>
 	</div>
 </template>
 <script>
