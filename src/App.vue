@@ -8,9 +8,7 @@
 			:childrenIdentifiers="['ruleSets', 'rules']"
 			:style="'width:400px; height: 600px'"
 		>
-			<template v-slot:left
-				><div>不不不</div></template
-			>
+			<template v-slot:left><div>不不不</div></template>
 		</TheTree>
 	</div>
 </template>
