@@ -69,10 +69,6 @@ export default {
 		uniqueKey: {}
 	},
 	computed: {
-		heightMark: function() {
-			// 这个computed值，用于表示，当前处于 零高 还是 全高
-			return this.openOrClose ? "full-height" : "zero-height";
-		},
 		transitionGroupHeight: function() {
 			return this.transitionGroupDimensions.height;
 		},
