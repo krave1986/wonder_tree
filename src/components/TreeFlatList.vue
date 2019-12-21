@@ -1,11 +1,6 @@
 <template>
 	<div :class="$style.curtain" :style="curtainStyle" @transitionend.self.stop="resetVerticalTransitionOrNot">
-		<component
-			v-bind:is="treeFlatListComponent"
-			tag="div"
-			:class="$style.treeFlatList"
-			v-use-resize-observer="transitionGroupDimensions"
-		>
+		<component ref="listEntity" v-bind:is="treeFlatListComponent" tag="div" :class="$style.treeFlatList">
 			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem">
 				<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
 					<slot :name="slotName" v-bind="scope"></slot>
@@ -69,12 +64,9 @@ export default {
 		uniqueKey: {}
 	},
 	computed: {
-		transitionGroupHeight: function() {
-			return this.transitionGroupDimensions.height;
-		},
 		fullHeightStyle: function() {
 			return {
-				height: this.transitionGroupHeight + "px"
+				height: this.verticalTransitionOrNot ? this.transitionGroupHeight + "px" : "initial"
 			};
 		},
 		heightStyle: function() {
@@ -100,26 +92,40 @@ export default {
 		}
 	},
 	watch: {
-		openOrClose: function() {
+		openOrClose: function(nv) {
 			if (this.transitionGroupHeight !== 0) {
 				this.verticalTransitionOrNot = true;
 			}
+			if (nv === true) {
+				this.updateTransitionGroupHeight();
+			}
+		},
+		listItems: function() {
+			this.updateTransitionGroupHeight();
 		}
 	},
 	data() {
 		return {
 			unwatches: [],
-			// openOrClose: true,
+			transitionGroupHeight: 0,
 			itemsToBeDisplayed: [],
 			migrationGen: {},
 			transitionGroupDimensions: {},
 			zeroHeightStyle: {
 				height: "0"
 			},
-			verticalTransitionOrNot: false
+			verticalTransitionOrNot: false,
+			// deferMark 用于处在自然状态下的菜单，在缩起来时，需要先将 height 定位成当前的高度，
+			// 再变成 height: 0
+			deferMark: true
 		};
 	},
 	methods: {
+		updateTransitionGroupHeight: function() {
+			this.$nextTick(function() {
+				this.transitionGroupHeight = this.$refs.listEntity.scrollHeight;
+			});
+		},
 		unwatchAll: function() {
 			this.unwatches.forEach(unwatch => unwatch());
 			this.unwatches = [];
@@ -177,7 +183,7 @@ export default {
 	color: rebeccapurple;
 	overflow: hidden;
 	will-change: height;
-	contain: paint size layout style;
+	contain: paint layout style;
 }
 .treeFlatList {
 	background: burlywood;

@@ -10,6 +10,7 @@
 		>
 			<template v-slot:left><div>不不不</div></template>
 		</TheTree>
+		<div class="test">不不不</div>
 	</div>
 </template>
 <script>
@@ -75,6 +76,15 @@ export default {
 </script>
 
 <style>
+.test {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 100px;
+	height: 100px;
+	background: rosybrown;
+	transition: all 2s;
+}
 * {
 	line-height: 1em;
 }
