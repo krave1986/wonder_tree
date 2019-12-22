@@ -257,8 +257,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference = [], uniqueKey) {
 export default {
 	name: "TreeNode",
 	props: {
-		treeItem: {},
-		parentNode: {}
+		treeItem: {}
 	},
 	data() {
 		return {

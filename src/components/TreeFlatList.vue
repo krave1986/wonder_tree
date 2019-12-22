@@ -1,7 +1,7 @@
 <template>
 	<div :class="$style.curtain" :style="curtainStyle" @transitionend.self.stop="postTransitionOperations">
 		<component ref="listEntity" v-bind:is="treeFlatListComponent" tag="div" :class="$style.treeFlatList">
-			<tree-node v-bind="$attrs" v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem">
+			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem">
 				<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
 					<slot :name="slotName" v-bind="scope"></slot>
 				</template>
