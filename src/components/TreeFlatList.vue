@@ -1,7 +1,7 @@
 <template>
-	<div :class="$style.curtain" :style="curtainStyle" @transitionend.self.stop="resetVerticalTransitionOrNot">
+	<div :class="$style.curtain" :style="curtainStyle" @transitionend.self.stop="postTransitionOperations">
 		<component ref="listEntity" v-bind:is="treeFlatListComponent" tag="div" :class="$style.treeFlatList">
-			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem">
+			<tree-node v-bind="$attrs" v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem">
 				<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
 					<slot :name="slotName" v-bind="scope"></slot>
 				</template>
@@ -21,7 +21,6 @@ export default {
 	},
 	props: {
 		listItems: {},
-		parent: {},
 		openOrCloseFromVModel: { type: Boolean, default: false }
 	},
 	model: {
@@ -66,11 +65,18 @@ export default {
 	computed: {
 		fullHeightStyle: function() {
 			return {
-				height: this.verticalTransitionOrNot ? this.transitionGroupHeight + "px" : "initial"
+				height: this.transitionGroupHeight + "px"
 			};
 		},
 		heightStyle: function() {
-			return this.openOrClose ? this.fullHeightStyle : this.zeroHeightStyle;
+			switch (this.heightStatus) {
+				case "full":
+					return this.fullHeightStyle;
+				case "zero":
+					return this.zeroHeightStyle;
+				default:
+					return {};
+			}
 		},
 		verticalTransitionStyle: function() {
 			return this.verticalTransitionOrNot
@@ -92,12 +98,23 @@ export default {
 		}
 	},
 	watch: {
-		openOrClose: function(nv) {
-			if (this.transitionGroupHeight !== 0) {
-				this.verticalTransitionOrNot = true;
-			}
+		async openOrClose(nv) {
 			if (nv === true) {
-				this.updateTransitionGroupHeight();
+				await this.updateTransitionGroupHeight();
+				this.heightStatus = "full";
+			} else {
+				if (this.heightStatus === "natural") {
+					// 如果当前当 status 是 natural 的话，
+					// 先将 status 设为 full， 然后再将 status 设为 zero
+					await this.updateTransitionGroupHeight();
+					this.heightStatus = "full";
+					const vm = this;
+					setTimeout(() => {
+						vm.heightStatus = "zero";
+					});
+				} else {
+					this.heightStatus = "zero";
+				}
 			}
 		},
 		listItems: function() {
@@ -106,6 +123,7 @@ export default {
 	},
 	data() {
 		return {
+			listInstance: this,
 			unwatches: [],
 			transitionGroupHeight: 0,
 			itemsToBeDisplayed: [],
@@ -114,24 +132,29 @@ export default {
 			zeroHeightStyle: {
 				height: "0"
 			},
-			verticalTransitionOrNot: false,
+			verticalTransitionOrNot: true,
 			// deferMark 用于处在自然状态下的菜单，在缩起来时，需要先将 height 定位成当前的高度，
 			// 再变成 height: 0
-			deferMark: true
+			deferMark: true,
+			// heightStatus分为3种：zero，full，natural
+			heightStatus: this.openOrCloseFromVModel === true ? "full" : "zero"
 		};
 	},
 	methods: {
 		updateTransitionGroupHeight: function() {
-			this.$nextTick(function() {
-				this.transitionGroupHeight = this.$refs.listEntity.scrollHeight;
+			const vm = this;
+			return vm.$nextTick().then(function() {
+				vm.transitionGroupHeight = vm.$refs.listEntity.scrollHeight;
 			});
 		},
 		unwatchAll: function() {
 			this.unwatches.forEach(unwatch => unwatch());
 			this.unwatches = [];
 		},
-		resetVerticalTransitionOrNot: function() {
-			this.verticalTransitionOrNot = false;
+		postTransitionOperations: function() {
+			if (this.heightStatus === "full") {
+				this.heightStatus = "natural";
+			}
 		}
 	},
 	created() {

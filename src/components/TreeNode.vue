@@ -257,7 +257,8 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference = [], uniqueKey) {
 export default {
 	name: "TreeNode",
 	props: {
-		treeItem: {}
+		treeItem: {},
+		parentNode: {}
 	},
 	data() {
 		return {
@@ -388,6 +389,7 @@ export default {
 <style module>
 .node {
 	display: flex;
+	align-items: flex-start;
 }
 .node > .leftSlot,
 .node > .nodeMain > .nodeContent {
