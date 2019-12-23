@@ -93,7 +93,7 @@ body {
 	--tree-node-height: 1rem;
 }
 #app {
-	--tree-flat-list-vertical-transition: height 1s ease-out;
+	--tree-flat-list-vertical-transition: height 800ms ease-out;
 }
 svg {
 	display: block;

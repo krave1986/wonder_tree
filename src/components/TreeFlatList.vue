@@ -81,7 +81,7 @@ export default {
 		verticalTransitionStyle: function() {
 			return this.verticalTransitionOrNot
 				? {
-						transition: "var(--tree-flat-list-vertical-transition, height 1s ease-out)"
+						transition: "var(--tree-flat-list-vertical-transition, height 800ms ease-out)"
 				  }
 				: {};
 		},
