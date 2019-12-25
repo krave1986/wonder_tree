@@ -1,6 +1,6 @@
 <template>
 	<div id="app">
-		<TheTree
+		<WonderTree
 			:migrationStep="1"
 			:migrationInterval="500.0"
 			:treeData="treeData"
@@ -8,19 +8,20 @@
 			:childrenIdentifiers="['ruleSets', 'rules']"
 			:style="'width:400px; height: 600px'"
 		>
-			<template v-slot:left><div>不不不</div></template>
-		</TheTree>
-		<div class="test">不不不</div>
+			<template v-slot:left="nodeInstance"
+				><div>{{ nodeInstance.treeItem.id }}</div></template
+			>
+		</WonderTree>
 	</div>
 </template>
 <script>
-import TheTree from "./components/TheTree";
+import WonderTree from "./components/WonderTree";
 import axios from "axios";
 import Vue from "vue";
 export default {
 	name: "app",
 	components: {
-		TheTree
+		WonderTree
 	},
 	data() {
 		return {
@@ -76,15 +77,6 @@ export default {
 </script>
 
 <style>
-.test {
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	width: 100px;
-	height: 100px;
-	background: rosybrown;
-	transition: all 2s;
-}
 * {
 	line-height: 1em;
 }
@@ -93,7 +85,7 @@ body {
 	--tree-node-height: 1rem;
 }
 #app {
-	--tree-flat-list-vertical-transition: height 1s ease-out;
+	--tree-flat-list-vertical-transition: height 800ms ease-out;
 }
 svg {
 	display: block;

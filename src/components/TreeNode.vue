@@ -1,7 +1,7 @@
 <template>
 	<div :class="$style.node" @click.stop="drawOff">
 		<div :class="$style.leftSlot" @click="leftClickHandler">
-			<slot name="left">
+			<slot name="left" v-bind="nodeInstance">
 				<svg
 					class="icon"
 					aria-hidden="true"

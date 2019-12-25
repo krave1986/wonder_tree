@@ -1,5 +1,5 @@
 <template>
-	<div :class="$style.curtain" :style="curtainStyle" @transitionend.self.stop="postTransitionOperations">
+	<div ref="curtain" :class="$style.curtain" :style="curtainStyle" @transitionend.self.stop="postTransitionOperations">
 		<component ref="listEntity" v-bind:is="treeFlatListComponent" tag="div" :class="$style.treeFlatList">
 			<tree-node v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem">
 				<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
@@ -81,7 +81,7 @@ export default {
 		verticalTransitionStyle: function() {
 			return this.verticalTransitionOrNot
 				? {
-						transition: "var(--tree-flat-list-vertical-transition, height 1s ease-out)"
+						transition: "var(--tree-flat-list-vertical-transition, height 800ms ease-out)"
 				  }
 				: {};
 		},
@@ -111,7 +111,7 @@ export default {
 					const vm = this;
 					setTimeout(() => {
 						vm.heightStatus = "zero";
-					});
+					}, 80);
 				} else {
 					this.heightStatus = "zero";
 				}
@@ -152,7 +152,7 @@ export default {
 			this.unwatches = [];
 		},
 		postTransitionOperations: function() {
-			if (this.heightStatus === "full") {
+			if (this.$refs.curtain.clientHeight !== 0) {
 				this.heightStatus = "natural";
 			}
 		}
