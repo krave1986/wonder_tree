@@ -8,9 +8,9 @@
 			:childrenIdentifiers="['ruleSets', 'rules']"
 			:style="'width:400px; height: 600px'"
 		>
-			<template v-slot:left="nodeInstance"
-				><div>{{ nodeInstance.treeItem.id }}</div></template
-			>
+			<template v-slot:left="nodeInstance">
+				<div>{{ nodeInstance.treeItem.id }}</div>
+			</template>
 		</WonderTree>
 	</div>
 </template>
@@ -70,7 +70,12 @@ export default {
 					};
 				}
 			},
-			treeFlatListComponent: "div"
+			treeFlatListComponent: "div",
+			listeners: {
+				successiveListenersForTreeFlatList: function() {
+					console.log(arguments);
+				}
+			}
 		};
 	}
 };
