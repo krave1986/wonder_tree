@@ -28,6 +28,7 @@ export default {
 		event: "toggle"
 	},
 	inject: {
+		customizedListeners: {},
 		treeFlatListComponent: {
 			default() {
 				return "div";
@@ -63,6 +64,32 @@ export default {
 		uniqueKey: {}
 	},
 	computed: {
+		listenersForVOn: function() {
+			const vm = this;
+			const filteredListeners = this.customizedListeners.filter(
+				l => l.forComponent.replace(/\B(?=[A-Z])/g, "-") === vm.$options._componentTag || l.successive === true
+			);
+			// filteredListeners 中，即包含了 forComponent 匹配当前组件名的监听器，
+			// 又包含了 succesive: true 的监听器
+			// 接下来，需要获取的是，二元entries，
+			const listenerEntries = filteredListeners.map(l => {
+				if (l.forComponent === vm.$options._componentTag) {
+					return [
+						l.event,
+						function(input) {
+							const output = l.handler.call(this, input);
+							if (l.successive === true) {
+								this.$emit(l.event, output);
+							}
+						}
+					];
+				} else {
+					// TODO
+					this.$emit(l.event);
+				}
+			});
+			return filteredListeners;
+		},
 		fullHeightStyle: function() {
 			return {
 				height: this.transitionGroupHeight + "px"

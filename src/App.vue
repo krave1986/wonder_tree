@@ -71,11 +71,24 @@ export default {
 				}
 			},
 			treeFlatListComponent: "div",
-			listeners: {
-				successiveListenersForTreeFlatList: function() {
-					console.log(arguments);
+			customizedListeners: [
+				{
+					event: "triad-select",
+					forComponent: "TreeFlatList",
+					handler: function() {
+						console.log(1, this);
+					},
+					successive: true
+				},
+				{
+					event: "triad-select",
+					forComponent: "TreeNode",
+					handler: function() {
+						console.log(1, this);
+					},
+					successive: false
 				}
-			}
+			]
 		};
 	}
 };
