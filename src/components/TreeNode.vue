@@ -14,7 +14,7 @@
 		</div>
 		<div :class="$style.nodeMain">
 			<div :class="$style.nodeContent">{{ treeItem.label }}</div>
-			<tree-flat-list :parentNode="nodeInstance" :listItems="listItems" v-model="openOrClose">
+			<tree-flat-list v-on="listenersForVOn" :parentNode="nodeInstance" :listItems="listItems" v-model="openOrClose">
 				<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
 					<slot :name="slotName" v-bind="scope"></slot>
 				</template>
@@ -280,6 +280,7 @@ export default {
 		const vm = this;
 	},
 	inject: {
+		customizedListeners: {},
 		childrenKeys: "childrenIdentifiers",
 		// 迁移步进，每次迁移多少个数据
 		migrationStep: {
@@ -311,6 +312,39 @@ export default {
 		}
 	},
 	computed: {
+		listenersForVOn: function() {
+			const vm = this;
+			const filteredListeners = this.customizedListeners.filter(
+				l =>
+					l.forComponent.replace(/\B(?=[A-Z])/g, "-").toLowerCase() === vm.$options._componentTag ||
+					l.successive === true
+			);
+			// filteredListeners 中，即包含了 forComponent 匹配当前组件名的监听器，
+			// 又包含了 succesive: true 的监听器
+			// 接下来，需要获取的是，二元entries，
+			const listenerEntries = filteredListeners.map(l => {
+				if (l.forComponent.replace(/\B(?=[A-Z])/g, "-").toLowerCase() === vm.$options._componentTag) {
+					return [
+						l.event,
+						function(input) {
+							const output = l.handler.call(this, input);
+							if (l.successive === true) {
+								this.$emit(l.event, output);
+							}
+						}.bind(vm)
+					];
+				} else {
+					return [
+						l.event,
+						function(input) {
+							this.$emit(l.event, input);
+						}.bind(vm)
+					];
+				}
+			});
+
+			return Object.fromEntries(listenerEntries);
+		},
 		listItems: function() {
 			return this.downstreamSwitch ? this.childrenCache : [];
 		},

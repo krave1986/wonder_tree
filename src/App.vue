@@ -76,15 +76,17 @@ export default {
 					event: "triad-select",
 					forComponent: "TreeFlatList",
 					handler: function() {
-						console.log(1, this);
+						console.log(this.$el);
+						this.$emit("bbb");
 					},
-					successive: true
+					successive: false
 				},
 				{
-					event: "triad-select",
+					event: "bbb",
 					forComponent: "TreeNode",
 					handler: function() {
-						console.log(1, this);
+						console.log(this.$el);
+						this.$emit("triad-select");
 					},
 					successive: false
 				}
