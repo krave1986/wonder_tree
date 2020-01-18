@@ -12,9 +12,13 @@
 				</svg>
 			</slot>
 		</div>
-		<div :class="$style.nodeMain">
-			<div :class="$style.nodeContent">{{ treeItem.label }}</div>
-			<tree-flat-list v-on="listenersForVOn" :parentNode="nodeInstance" :listItems="listItems" v-model="openOrClose">
+		<div :class="$style.nodeMain + nodeMainClass">
+			<div :class="$style.nodeContent">
+				<slot name="content" v-bind="nodeInstance">
+					{{ treeItem.label }}
+				</slot>
+			</div>
+			<tree-flat-list v-on="listenersForVOn" :listItems="listItems" v-model="openOrClose">
 				<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
 					<slot :name="slotName" v-bind="scope"></slot>
 				</template>
@@ -24,70 +28,15 @@
 </template>
 
 <script>
-import IdleAssigner from "../helper/offloader/IdleAssigner";
-import Assigner from "../helper/offloader/Assigner";
 import Offloader from "../helper/offloader/Offloader";
 
 const componentName = "TreeNode";
 
-function eliminateDuplicationsInRestOfCache(migrationUnit, index, cache, key) {
-	// cache 剩余的，需要做去重校验的部分
-	const restSegmentInCache = cache.slice(index);
-	return migrationUnit.reduce((accumulator, elementInMigrationUnit) => {
-		return accumulator.filter(e => {
-			return e[key] !== elementInMigrationUnit[key];
-		});
-	}, restSegmentInCache);
-}
-
-function getPropertyFromString(obj, keyToken) {
-	const keyArr = keyToken.split(".");
-	return keyArr.reduce((subLevelProperty, key) => {
-		try {
-			return subLevelProperty[key];
-		} catch (error) {
-			return undefined;
-		}
-	}, obj);
-}
-
-function* igrator(step, base, cache, uniqueKey) {
-	// migrationUnitEndBefore 用来存放本次迭代单元中，末位元素的索引之后的索引
-	let migrationUnitEndBefore;
-	let pointer = 0;
-	let touchTheBottom = false;
-	while (!touchTheBottom) {
-		// 1、确定这次迭代的 数据迁移单元
-		const migrationUnit = base.slice(pointer, (migrationUnitEndBefore = pointer + step));
-		// 判断 migrationUnit 的长度，如果 migrationUnit 的长度为 0 ，则说明已经没有数据可以做迁移了。
-		// 没有数据可以做迁移的话，自然就结束 generator 了。直接 return 。
-		if (migrationUnit.length === 0) {
-			return;
-		}
-		// 2、判断 pointer 是否已经超出 cache 的长度，用来控制之后是不是要继续执行 while 循环
-		touchTheBottom = migrationUnitEndBefore >= base.length;
-		// 3、判断 migrationUnitEndBefore 有没有超出 cache 的长度，超过的话，就不用再做验重校验了；
-		if (migrationUnitEndBefore < cache.length) {
-			// 没有达到的时候，才进行验重操作
-			// noDuplicationsInRest 用于存放最终没有重复内容的剩余部分
-			let noDuplicationsInRest;
-			// 向后验重。此时 migrationUnitEndBefore 已经指向了验重的起始位置
-			// 对 迁移单元 进行迭代，使用 reduce 方法，在迭代迁移单元的过程当中，就把之后要替换掉的数组内容做好。
-			noDuplicationsInRest = eliminateDuplicationsInRestOfCache(migrationUnit, migrationUnitEndBefore, cache, uniqueKey);
-			// 把 迁移单元 和 noDuplicationsInRest 进行合并，从 migrationUnitEndBefore 这个索引开始，全部 splice 掉
-			cache.splice(pointer, Infinity, ...migrationUnit.concat(noDuplicationsInRest));
-			//
-		} else {
-			// migrationUnitEndBefore 已经超出 cache 的长度，直接基于 pointer 做 splice 操作
-			cache.splice(pointer, 0, ...migrationUnit);
-		}
-		var abc = yield migrationUnitEndBefore;
-	}
-}
-
 function* migrator(step, snapshots, vm) {
+	if (snapshots.length === 0) {
+		return;
+	}
 	if (step === "all") {
-		// debugger;
 		step = snapshots.length;
 	}
 	function* migrate(index) {
@@ -100,7 +49,6 @@ function* migrator(step, snapshots, vm) {
 			yield* migrate(index + step);
 		}
 	}
-	// index 表示第一次需要迁移的镜像的索引
 	const index = step - 1;
 	yield* migrate(index);
 }
@@ -270,18 +218,27 @@ export default {
 			idleScheduler: Offloader.scheduleIdleTask(),
 			ani: Offloader.scheduleAnimationTask(),
 			openOrClose: false,
-			nodeInstance: this
+			nodeInstance: this,
+			// 节点 nodeMain 的类
+			nodeMainClass: "",
+			unwatches: []
 		};
 	},
 	components: {
 		TreeFlatList: () => import("./TreeFlatList.vue")
 	},
-	created() {
-		const vm = this;
-	},
 	inject: {
-		customizedListeners: {},
-		childrenKeys: "childrenIdentifiers",
+		customizedListeners: {
+			default() {
+				return [];
+			}
+		},
+		childrenKeys: {
+			from: "childrenIdentifiers",
+			default() {
+				return ["children"];
+			}
+		},
 		// 迁移步进，每次迁移多少个数据
 		migrationStep: {
 			default() {
@@ -304,12 +261,64 @@ export default {
 				};
 			}
 		},
+		watchBase: {
+			from: "watchToBaseFor" + componentName,
+			default() {
+				return {};
+			}
+		},
+		watchHandlers: {
+			from: "watchToHandlersFor" + componentName,
+			default() {
+				return {};
+			}
+		},
 		uniqueKey: {},
 		customizedMigrationHandler: {
 			default() {
 				return function() {};
 			}
-		}
+		},
+		parentList: {}
+	},
+	created() {
+		const vm = this;
+
+		const watchBaseKeys = Object.keys(this.watchBase);
+		// 对注入的 handlers 的 keys 做迭代，对对应的内容做 watch 操作
+		// 对 handlersKeys 再做一波基于 watchToId 的过滤
+		const handlersKeys = Object.keys(vm.watchHandlers).filter(key => {
+			return (
+				// 如果传入的是 function 的话，就直接watch了、如果不是 function，又没有 id 的话，也可以watch、
+				// 如果有 id ，且等于 watchToId 的话，也可以watch
+				typeof vm.watchHandlers[key] === "function" ||
+				vm.watchHandlers[key].id === undefined ||
+				vm.watchHandlers[key].id === vm.watchToId
+			);
+		});
+		const restHandlerKeys = handlersKeys.filter(handlerKey => {
+			if (watchBaseKeys.includes(handlerKey)) {
+				vm.unwatches.push(
+					vm.$watch(
+						`watchBase.` + handlerKey,
+						vm[`watchHandlers`][handlerKey].handler || vm[`watchHandlers`][handlerKey],
+						vm[`watchHandlers`][handlerKey].options || {}
+					)
+				);
+				return;
+			}
+			return true;
+		});
+		// 为 watchToBase 中不存在的 属性 添加 watch 组件属性的 watcher
+		restHandlerKeys.forEach(handlerKey => {
+			vm.unwatches.push(
+				vm.$watch(
+					handlerKey,
+					vm[`watchHandlers`][handlerKey].handler || vm[`watchHandlers`][handlerKey],
+					vm[`watchHandlers`][handlerKey].options || {}
+				)
+			);
+		});
 	},
 	computed: {
 		listenersForVOn: function() {
@@ -354,13 +363,17 @@ export default {
 		}
 	},
 	methods: {
+		unwatchAll: function() {
+			this.unwatches.forEach(unwatch => unwatch());
+			this.unwatches = [];
+		},
 		leftClickHandler: function() {
 			this.openOrClose = !this.openOrClose;
 		},
 		drawOff: function() {
 			this.downstreamSwitch = true;
 		},
-		getSnapshotReady: function(nv) {
+		getSnapshotReady: function() {
 			const vm = this;
 			// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
 			const snapshotGen = getSnapshotWhenSyncingTwoArrays(this.childrenCache, this.childrenInThisItem, this.uniqueKey);
@@ -377,8 +390,8 @@ export default {
 			const vm = this;
 			// 1、迁移步进为： this.migrationStep
 			// 2、迁移间隔为： this.migrationInterval
-			const step = this.migrationStep;
-			const interval = this.migrationInterval;
+			// const step = this.migrationStep;
+			// const interval = this.migrationInterval;
 			// 不使用 promise，而是手动watch的方式，保证各种情况下，都可以在
 			// 该方法调用后，根据最新的 snapshots ，去做数据迁移。
 			this.$watch("snapshots", function(snapshots) {
@@ -394,6 +407,11 @@ export default {
 	watch: {
 		childrenInThisItem: {
 			handler: function(nv) {
+				const vm = this;
+				nv &&
+					nv.forEach(item => {
+						vm.parentList[item.id] = vm.treeItem;
+					});
 				this.getSnapshotReady(nv);
 			},
 			immediate: true
@@ -404,17 +422,9 @@ export default {
 		setTimeout(() => {
 			vm.manuallyWatchSnapshots();
 		});
-		// 两个数组，最终目标数组同步成参照数组，形成 v-for 可用的快照序列
-		// const snapshotGen = getSnapshotWhenSyncingTwoArrays(this.childrenCache, this.childrenInThisItem, this.uniqueKey);
-		// vm.idleScheduler
-		// 	.assign(snapshotGen, 2000, vm, "urgent")
-		// 	.then(res => {
-		// 		const migratorGen = migrator(vm.migrationStep, res, vm);
-		// 		vm.ani.assign(migratorGen, 0);
-		// 	})
-		// 	.catch(err => {
-		// 		console.log(err);
-		// });
+	},
+	destroyed() {
+		this.unwatchAll();
 	}
 };
 </script>
@@ -424,15 +434,20 @@ export default {
 	display: flex;
 	align-items: flex-start;
 }
-.node > .leftSlot,
+.node > .leftSlot {
+	padding: var(--tree-node-left-padding, var(--tree-node-padding-default));
+}
 .node > .nodeMain > .nodeContent {
-	padding: var(--tree-node-padding, 7px 0);
+	padding: var(--tree-node-content-padding, var(--tree-node-padding-default));
 }
 .nodeContent {
 	height: var(--tree-node-height, fit-content);
 }
 .nodeMain {
 	flex-grow: 1;
-	margin: var(--tree-node-margin, 0 0 0 8px);
+	margin: var(--tree-node-content-margin, 0 0 0 8px);
+}
+.nodeMain:hover {
+	background: var(--tree-node-main-hover-background);
 }
 </style>

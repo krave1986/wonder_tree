@@ -21,14 +21,19 @@ export default {
 	},
 	props: {
 		listItems: {},
-		openOrCloseFromVModel: { type: Boolean, default: false }
+		openOrCloseFromVModel: { type: Boolean, default: false },
+		isTopList: { type: Boolean, default: false }
 	},
 	model: {
 		prop: "openOrCloseFromVModel",
 		event: "toggle"
 	},
 	inject: {
-		customizedListeners: {},
+		customizedListeners: {
+			default() {
+				return [];
+			}
+		},
 		treeFlatListComponent: {
 			default() {
 				return "div";
@@ -47,7 +52,11 @@ export default {
 		beforeMountedForTreeFlatList: {
 			default() {
 				return function() {
-					this.openOrClose = false;
+					if (this.isTopList) {
+						this.openOrClose = true;
+					} else {
+						this.openOrClose = false;
+					}
 				};
 			}
 		},
@@ -157,7 +166,6 @@ export default {
 	},
 	data() {
 		return {
-			listInstance: this,
 			unwatches: [],
 			transitionGroupHeight: 0,
 			itemsToBeDisplayed: [],
@@ -220,7 +228,13 @@ export default {
 		});
 		// 为 watchToBase 中不存在的 属性 添加 watch 组件属性的 watcher
 		restHandlerKeys.forEach(handlerKey => {
-			vm.unwatches.push(vm.$watch(handlerKey, vm[`watchToHandlersFor${vm.$options.name}`][handlerKey]));
+			vm.unwatches.push(
+				vm.$watch(
+					handlerKey,
+					vm[`watchHandlers`][handlerKey].handler || vm[`watchHandlers`][handlerKey],
+					vm[`watchHandlers`][handlerKey].options || {}
+				)
+			);
 		});
 		// 调用 beforeMounted 的 注入钩
 		vm.beforeMountedForTreeFlatList();
@@ -237,12 +251,8 @@ export default {
 
 <style module>
 .curtain {
-	color: rebeccapurple;
 	overflow: hidden;
 	will-change: height;
 	contain: paint layout style;
-}
-.treeFlatList {
-	background: burlywood;
 }
 </style>

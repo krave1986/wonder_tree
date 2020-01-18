@@ -1,5 +1,4 @@
 import Assigner from "./Assigner";
-import getPropertyFromString from "../getPropertyFromString";
 
 function operate(symbol, resolve, reject, { gen }) {
 	let yieldResult;

@@ -1,6 +1,6 @@
 <template>
 	<div :class="containerClasses" :style="containerStyle" style="overflow-x: hidden; padding: var(--tree-padding, 0 0 0 8px)">
-		<tree-flat-list :listItems="treeData" :openOrCloseFromVModel="true">
+		<tree-flat-list :isTopList="true" :listItems="treeData" v-model="expand">
 			<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
 				<slot :name="slotName" v-bind="scope"></slot>
 			</template>
@@ -42,8 +42,10 @@ export default {
 			default: "id"
 		},
 		childrenIdentifiers: {
-			type: [String, Array],
-			required: true
+			type: [String, Array]
+		},
+		expandTopList: {
+			default: true
 		}
 	},
 	components: {
@@ -51,7 +53,8 @@ export default {
 	},
 	data() {
 		return {
-			bufferedData: []
+			bufferedData: [],
+			expand: this.expandTopList
 		};
 	},
 	computed: {
@@ -66,22 +69,28 @@ export default {
 		}
 	},
 	provide() {
-		return {
+		const providePayload = {
 			watchToId: this.watchToId,
 			uniqueKey: this.uniqueKey,
-			childrenIdentifiers:
-				typeof this.childrenIdentifiers === "string" ? [this.childrenIdentifiers] : this.childrenIdentifiers,
-			migrationStep: this.migrationStep,
-			migrationInterval: this.migrationInterval
+			migrationInterval: this.migrationInterval,
+			parentList: {}
 		};
+		if (this.migrationStep) {
+			providePayload.migrationStep = this.migrationStep;
+		}
+		if (this.childrenIdentifiers) {
+			providePayload.childrenIdentifiers =
+				typeof this.childrenIdentifiers === "string" ? [this.childrenIdentifiers] : this.childrenIdentifiers;
+		}
+		return providePayload;
 	}
 };
 </script>
 
 <style module>
 .treeContainer {
-	background-color: darkkhaki;
 	overflow: auto;
+	--tree-node-padding-default: var(--tree-node-padding, 7px 0);
 }
 .treeContainer > * {
 	width: inherit;
