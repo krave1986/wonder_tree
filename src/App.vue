@@ -17,7 +17,6 @@
 <script>
 import WonderTree from "./components/WonderTree";
 import axios from "axios";
-import Vue from "vue";
 export default {
 	name: "app",
 	components: {
@@ -32,7 +31,7 @@ export default {
 			watchToHandlersForTreeFlatList: {
 				expand: {
 					id: "1",
-					handler: function(nv, ov) {
+					handler: function() {
 						this.openOrClose = !this.openOrClose;
 					},
 					options: {
@@ -59,7 +58,10 @@ export default {
 			watchToHandlersForTreeFlatList: vm.watchToHandlersForTreeFlatList,
 			afterMountedForTreeFlatList: function() {},
 			beforeMountedForTreeFlatList: function() {
-				if (this.$attrs.parentNode === undefined) {
+				// if (this.$attrs.parentNode === undefined) {
+				// 	this.openOrClose = true;
+				// }
+				if (this.isTopList) {
 					this.openOrClose = true;
 				}
 			},
@@ -70,27 +72,7 @@ export default {
 					};
 				}
 			},
-			treeFlatListComponent: "div",
-			customizedListeners: [
-				{
-					event: "triad-select",
-					forComponent: "TreeFlatList",
-					handler: function() {
-						console.log(this.$el);
-						this.$emit("bbb");
-					},
-					successive: false
-				},
-				{
-					event: "bbb",
-					forComponent: "TreeNode",
-					handler: function() {
-						console.log(this.$el);
-						this.$emit("triad-select");
-					},
-					successive: false
-				}
-			]
+			treeFlatListComponent: "div"
 		};
 	}
 };

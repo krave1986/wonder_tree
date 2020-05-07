@@ -32,7 +32,7 @@ function operate(symbol, resolve, reject, { gen, timeout, backpacker, bag }) {
 		// 需要再排一个 idleCallback 才能让 gen 执行完.
 		if (yieldResult.done === false) {
 			timeout = Math.max(timeout - genEnd + genStart, 1);
-			console.log("OUT!!!! +++++++++++++++++", timeout);
+			console.debug("OUT!!!! +++++++++++++++++", timeout);
 			// 判断是不是 urgent ，urgent 的话，
 			getPropertyFromString(backpacker, bag) === true
 				? requestRecordedIdleCallback(stableThis, idleHandler, { timeout: 1 })

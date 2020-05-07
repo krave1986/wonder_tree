@@ -1,7 +1,14 @@
 <template>
 	<div ref="curtain" :class="$style.curtain" :style="curtainStyle" @transitionend.self.stop="postTransitionOperations">
 		<component ref="listEntity" v-bind:is="treeFlatListComponent" tag="div" :class="$style.treeFlatList">
-			<tree-node v-on="listenersForVOn" v-for="(listItem, index) in listItems" :key="index" :treeItem="listItem">
+			<tree-node
+				v-on="listenersForVOn"
+				v-for="(listItem, index) in listItems"
+				:key="index"
+				:treeItem="listItem"
+				v-bind="customVBinding()"
+				ref="subNodes"
+			>
 				<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
 					<slot :name="slotName" v-bind="scope"></slot>
 				</template>
@@ -12,6 +19,8 @@
 
 <script>
 import TreeNode from "./TreeNode";
+
+const componentName = "TreeFlatList";
 
 export default {
 	inheritAttrs: false,
@@ -29,7 +38,16 @@ export default {
 		event: "toggle"
 	},
 	inject: {
-		customizedListeners: {
+		customVBinding: {
+			from: "customVBinding|" + componentName,
+			default() {
+				return function() {
+					return {};
+				};
+			}
+		},
+		customListeners: {
+			from: "customListenersFor" + componentName,
 			default() {
 				return [];
 			}
@@ -74,37 +92,14 @@ export default {
 	},
 	computed: {
 		listenersForVOn: function() {
-			const vm = this;
-			const filteredListeners = this.customizedListeners.filter(
-				l =>
-					l.forComponent.replace(/\B(?=[A-Z])/g, "-").toLowerCase() === vm.$options._componentTag ||
-					l.successive === true
-			);
-			// filteredListeners 中，即包含了 forComponent 匹配当前组件名的监听器，
-			// 又包含了 succesive: true 的监听器
-			// 接下来，需要获取的是，二元entries，
-			const listenerEntries = filteredListeners.map(l => {
-				if (l.forComponent.replace(/\B(?=[A-Z])/g, "-").toLowerCase() === vm.$options._componentTag) {
-					return [
-						l.event,
-						function(input) {
-							const output = l.handler.call(this, input);
-							if (l.successive === true) {
-								this.$emit(l.event, output);
-							}
-						}.bind(vm)
-					];
-				} else {
-					return [
-						l.event,
-						function(input) {
-							this.$emit(l.event, input);
-						}.bind(vm)
-					];
-				}
-			});
-
-			return Object.fromEntries(listenerEntries);
+			if (this.customListeners.length > 0) {
+				const bindedListeners = this.customListeners.map(l => {
+					return [l[0], l[1].bind(this)];
+				});
+				return Object.fromEntries(bindedListeners);
+			} else {
+				return {};
+			}
 		},
 		fullHeightStyle: function() {
 			return {
@@ -231,8 +226,9 @@ export default {
 			vm.unwatches.push(
 				vm.$watch(
 					handlerKey,
-					vm[`watchHandlers`][handlerKey].handler || vm[`watchHandlers`][handlerKey],
-					vm[`watchHandlers`][handlerKey].options || {}
+					vm[`watchToHandlersFor${vm.$options.name}`][handlerKey].handler ||
+						vm[`watchToHandlersFor${vm.$options.name}`][handlerKey],
+					vm[`watchToHandlersFor${vm.$options.name}`][handlerKey].options || {}
 				)
 			);
 		});

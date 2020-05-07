@@ -1,6 +1,6 @@
 <template>
-	<div :class="$style.node" @click.stop="drawOff">
-		<div :class="$style.leftSlot" @click="leftClickHandler">
+	<div :class="wholeNodeClass" @click.stop="drawOff">
+		<div :class="$style.leftSlot">
 			<slot name="left" v-bind="nodeInstance">
 				<svg
 					class="icon"
@@ -18,7 +18,7 @@
 					{{ treeItem.label }}
 				</slot>
 			</div>
-			<tree-flat-list v-on="listenersForVOn" :listItems="listItems" v-model="openOrClose">
+			<tree-flat-list v-on="listenersForVOn" :listItems="listItems" v-model="openOrClose" v-bind="customVBinding()">
 				<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
 					<slot :name="slotName" v-bind="scope"></slot>
 				</template>
@@ -82,7 +82,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference = [], uniqueKey) {
 		cachePointer += 1;
 		listPointer += 1;
 		// 检查循环是否结束
-		checkWhetherLoopOver();
+		loopOver = checkWhetherLoopOver();
 	}
 	// 从数组中，找到匹配项的 索引
 	function findIndexOfSpecificItemFromArray(fromIndex, array, item) {
@@ -104,7 +104,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference = [], uniqueKey) {
 		cachePointer += 1;
 		listPointer += 1;
 		// 检查循环是否结束
-		checkWhetherLoopOver();
+		loopOver = checkWhetherLoopOver();
 	}
 	// 交换 cache 中，元素的位置
 	function swapElementInCache(toBeSwapped, from, item) {
@@ -121,7 +121,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference = [], uniqueKey) {
 		cachePointer += 1;
 		listPointer += 1;
 		// 检查循环是否结束
-		checkWhetherLoopOver();
+		loopOver = checkWhetherLoopOver();
 	}
 	// 移除 cache 中剩余的元素，每次做一个镜像
 	function* removeTheRestInCache() {
@@ -133,12 +133,16 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference = [], uniqueKey) {
 			// 加入快照
 			snapshot.push({ parallel: false, result: cache.slice(0) });
 			// 双边指针 +1
-			cachePointer += 1;
-			listPointer += 1;
+			// bug：在前一次的移除1条操作后，由于之前指针所指元素已经从cache中消失，
+			// CachePointer实际上已经指向了下次需要移除的元素，cachePointer无需 +1 ，
+			// 同时，此时 listPointer 已经指向了 list 数组中，最后一个元素之后，也无需 +1
+			// cachePointer += 1;
+			// listPointer += 1;
 			yield { payload: { cachePointer, cache, listPointer, list } };
 		}
 		// 检查循环是否结束
-		checkWhetherLoopOver();
+		// bug：走到这一步的时候，loopOver已经为true，且后续不再检查loopOver的值，所以不用再做 checkWhetherLoopOver 检查
+		// loopOver = checkWhetherLoopOver();
 	}
 	// 生成 target 和 reference 的浅拷贝
 	// taget => cache
@@ -196,7 +200,7 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference = [], uniqueKey) {
 		cache.push(list[listPointer++]);
 		cachePointer++;
 		snapshot.push({ parallel: false, result: cache.slice(0) });
-		checkWhetherLoopOver();
+		loopOver = checkWhetherLoopOver();
 		yield { payload: { cachePointer, cache, listPointer, list } };
 	}
 	return snapshot;
@@ -207,11 +211,12 @@ export default {
 	props: {
 		treeItem: {}
 	},
+	inheritAttrs: false,
 	data() {
 		return {
 			downstreamSwitch: true,
 			childrenCache: [],
-			customDataAbc: { ...this.customData.generator() },
+			customData: { ...this.customData.generator() },
 			urgent: false,
 			animationUrgent: false,
 			snapshots: [],
@@ -221,16 +226,26 @@ export default {
 			nodeInstance: this,
 			// 节点 nodeMain 的类
 			nodeMainClass: "",
-			unwatches: []
+			unwatches: [],
+			nodeClass: ""
 		};
 	},
 	components: {
 		TreeFlatList: () => import("./TreeFlatList.vue")
 	},
 	inject: {
-		customizedListeners: {
+		customListeners: {
+			from: "customListenersFor" + componentName,
 			default() {
 				return [];
+			}
+		},
+		customVBinding: {
+			from: "customVBinding|" + componentName,
+			default() {
+				return function() {
+					return {};
+				};
 			}
 		},
 		childrenKeys: {
@@ -274,11 +289,6 @@ export default {
 			}
 		},
 		uniqueKey: {},
-		customizedMigrationHandler: {
-			default() {
-				return function() {};
-			}
-		},
 		parentList: {}
 	},
 	created() {
@@ -322,37 +332,14 @@ export default {
 	},
 	computed: {
 		listenersForVOn: function() {
-			const vm = this;
-			const filteredListeners = this.customizedListeners.filter(
-				l =>
-					l.forComponent.replace(/\B(?=[A-Z])/g, "-").toLowerCase() === vm.$options._componentTag ||
-					l.successive === true
-			);
-			// filteredListeners 中，即包含了 forComponent 匹配当前组件名的监听器，
-			// 又包含了 succesive: true 的监听器
-			// 接下来，需要获取的是，二元entries，
-			const listenerEntries = filteredListeners.map(l => {
-				if (l.forComponent.replace(/\B(?=[A-Z])/g, "-").toLowerCase() === vm.$options._componentTag) {
-					return [
-						l.event,
-						function(input) {
-							const output = l.handler.call(this, input);
-							if (l.successive === true) {
-								this.$emit(l.event, output);
-							}
-						}.bind(vm)
-					];
-				} else {
-					return [
-						l.event,
-						function(input) {
-							this.$emit(l.event, input);
-						}.bind(vm)
-					];
-				}
-			});
-
-			return Object.fromEntries(listenerEntries);
+			if (this.customListeners.length > 0) {
+				const bindedListeners = this.customListeners.map(l => {
+					return [l[0], l[1].bind(this)];
+				});
+				return Object.fromEntries(bindedListeners);
+			} else {
+				return {};
+			}
 		},
 		listItems: function() {
 			return this.downstreamSwitch ? this.childrenCache : [];
@@ -360,6 +347,9 @@ export default {
 		childrenInThisItem: function() {
 			const vm = this;
 			return vm.childrenKeys.map(key => vm.treeItem && vm.treeItem[key]).find(children => Array.isArray(children));
+		},
+		wholeNodeClass: function() {
+			return this.$style.node + (this.nodeClass ? " " + this.nodeClass : "");
 		}
 	},
 	methods: {
@@ -367,7 +357,7 @@ export default {
 			this.unwatches.forEach(unwatch => unwatch());
 			this.unwatches = [];
 		},
-		leftClickHandler: function() {
+		expandAndCollapse: function() {
 			this.openOrClose = !this.openOrClose;
 		},
 		drawOff: function() {
@@ -383,7 +373,7 @@ export default {
 					vm.snapshots = snapshots;
 				})
 				.catch(err => {
-					console.log(err);
+					throw err;
 				});
 		},
 		manuallyWatchSnapshots: function() {
