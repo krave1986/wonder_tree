@@ -206,6 +206,14 @@ function* getSnapshotWhenSyncingTwoArrays(target, reference = [], uniqueKey) {
 	return snapshot;
 }
 
+function simulateMethodsBinding(context, theFunctions) {
+	const result = {};
+	for (const key in theFunctions) {
+		result[key] = theFunctions[key].bind(context);
+	}
+	return result;
+}
+
 export default {
 	name: "TreeNode",
 	props: {
@@ -217,6 +225,7 @@ export default {
 			downstreamSwitch: true,
 			childrenCache: [],
 			customData: { ...this.customData.generator() },
+			customMethods: { ...simulateMethodsBinding(this, this.customMethods) },
 			urgent: false,
 			animationUrgent: false,
 			snapshots: [],
@@ -274,6 +283,12 @@ export default {
 						return {};
 					}
 				};
+			}
+		},
+		customMethods: {
+			from: "customMethodsFor" + componentName,
+			default() {
+				return {};
 			}
 		},
 		watchBase: {
