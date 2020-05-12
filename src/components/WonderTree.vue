@@ -1,5 +1,5 @@
 <template>
-	<div :class="containerClasses" :style="containerStyle" style="overflow-x: hidden; padding: var(--tree-padding, 0 0 0 8px)">
+	<div :class="containerClasses" :style="containerStyle" style=" padding: var(--tree-padding, 0 0 0 8px)">
 		<tree-flat-list :isTopList="true" :listItems="treeData" v-model="expand">
 			<template v-for="slotName in Object.keys($scopedSlots)" #[slotName]="scope">
 				<slot :name="slotName" v-bind="scope"></slot>
@@ -91,9 +91,6 @@ export default {
 .treeContainer {
 	overflow: auto;
 	--tree-node-padding-default: var(--tree-node-padding, 7px 0);
-}
-.treeContainer > * {
-	width: inherit;
 }
 .treeContainer:hover {
 	/* 鼠标hover到treeContainer后，做好滚动的准备 */
