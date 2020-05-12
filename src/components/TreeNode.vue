@@ -444,12 +444,12 @@ export default {
 }
 .node > .nodeMain > .nodeContent {
 	padding: var(--tree-node-content-padding, var(--tree-node-padding-default));
+	white-space: var(--tree-node-content-white-space);
 }
 .nodeContent {
 	height: var(--tree-node-height, fit-content);
 }
 .nodeMain {
-	flex-grow: 1;
 	margin: var(--tree-node-content-margin, 0 0 0 8px);
 }
 .nodeMain:hover {
