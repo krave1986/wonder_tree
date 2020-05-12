@@ -6,10 +6,10 @@
 			:treeData="treeData"
 			:watchToId="'1'"
 			:childrenIdentifiers="['ruleSets', 'rules']"
-			:style="'width:400px; height: 600px'"
+			:style="'width:250px; height: 100vh'"
 		>
-			<template v-slot:left="nodeInstance">
-				<div>{{ nodeInstance.treeItem.id }}</div>
+			<template v-slot:left="{ expandAndCollapse, treeItem }">
+				<div @click="expandAndCollapse">{{ treeItem.id }}</div>
 			</template>
 		</WonderTree>
 	</div>
@@ -85,6 +85,7 @@ export default {
 body {
 	margin: 0;
 	--tree-node-height: 1rem;
+	--tree-node-content-white-space: nowrap;
 }
 #app {
 	--tree-flat-list-vertical-transition: height 800ms ease-out;
@@ -100,5 +101,8 @@ svg {
 	vertical-align: -0.15em;
 	fill: currentColor;
 	overflow: hidden;
+}
+[class^="WonderTree_treeContainer"] > [class^="TreeFlatList_curtain"] {
+	overflow: initial;
 }
 </style>
