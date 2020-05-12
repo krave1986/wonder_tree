@@ -38,6 +38,11 @@ export default {
 		event: "toggle"
 	},
 	inject: {
+		sizeAffectableByChildren: {
+			default() {
+				return false;
+			}
+		},
 		customVBinding: {
 			from: "customVBinding|" + componentName,
 			default() {
@@ -124,7 +129,10 @@ export default {
 				: {};
 		},
 		curtainStyle: function() {
-			return { ...this.heightStyle, ...this.verticalTransitionStyle };
+			return { ...this.heightStyle, ...this.verticalTransitionStyle, ...this.containmanet };
+		},
+		containmanet: function() {
+			return this.sizeAffectableByChildren ? { contain: "style" } : { contain: "paint layout style" };
 		},
 		openOrClose: {
 			get() {
@@ -249,6 +257,5 @@ export default {
 .curtain {
 	overflow: hidden;
 	will-change: height;
-	contain: paint layout style;
 }
 </style>

@@ -54,6 +54,7 @@ export default {
 	provide() {
 		const vm = this;
 		return {
+			sizeAffectableByChildren: true,
 			watchToBaseForTreeFlatList: vm.watchToBaseForTreeFlatList,
 			watchToHandlersForTreeFlatList: vm.watchToHandlersForTreeFlatList,
 			afterMountedForTreeFlatList: function() {},
